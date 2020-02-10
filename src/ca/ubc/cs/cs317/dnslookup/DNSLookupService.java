@@ -2,10 +2,12 @@ package ca.ubc.cs.cs317.dnslookup;
 
 import java.io.Console;
 import java.net.DatagramSocket;
+import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.io.*;
 
 public class DNSLookupService {
 
@@ -173,6 +175,33 @@ public class DNSLookupService {
         if (indirectionLevel > MAX_INDIRECTION_LEVEL) {
             System.err.println("Maximum number of indirection levels reached.");
             return Collections.emptySet();
+        }
+
+        try {
+            // TODO : implement UDP connection successfully
+            //get input from user
+            BufferedReader user_in = new BufferedReader(
+                    new InputStreamReader(System.in));
+
+            // UDP connection
+            DatagramSocket socket = new DatagramSocket();
+            InetAddress IP = InetAddress.getByName(node.getHostName());
+
+            //creat buffers to process data
+            byte[] inData = new byte[1024];
+            byte[] outData = new byte[1024];
+
+            //send pkts
+            DatagramPacket sendPkt = new DatagramPacket(outData, outData.length, IP, DEFAULT_DNS_PORT);
+            socket.send(sendPkt);
+
+            //receive pkts
+            DatagramPacket recievePkt = new DatagramPacket(inData, inData.length);
+            socket.receive(recievePkt);
+
+            System.out.println("Replay from Server: "+recievePkt.getData());
+        } catch (IOException e) {
+            System.out.println(e);
         }
 
         // TODO To be completed by the student
