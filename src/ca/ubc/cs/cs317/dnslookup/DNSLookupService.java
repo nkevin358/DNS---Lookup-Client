@@ -1,13 +1,9 @@
 package ca.ubc.cs.cs317.dnslookup;
 
 import java.io.Console;
-import java.net.DatagramSocket;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.io.IOException;
+import java.net.*;
 import java.util.*;
-import java.io.*;
 
 public class DNSLookupService {
 
@@ -179,31 +175,28 @@ public class DNSLookupService {
 
         try {
             // TODO : implement UDP connection successfully
-            //get input from user
-            BufferedReader user_in = new BufferedReader(
-                    new InputStreamReader(System.in));
 
             // UDP connection
             DatagramSocket socket = new DatagramSocket();
             InetAddress IP = InetAddress.getByName(node.getHostName());
 
-            //creat buffers to process data
-            byte[] inData = new byte[1024];
-            byte[] outData = new byte[1024];
+            // create buffer to process data
+            byte[] buffer = new byte[1024];
 
-            //send pkts
-            DatagramPacket sendPkt = new DatagramPacket(outData, outData.length, IP, DEFAULT_DNS_PORT);
-            socket.send(sendPkt);
+            // request to server
+            DatagramPacket request = new DatagramPacket(buffer, buffer.length, IP, DEFAULT_DNS_PORT);
+            socket.send(request);
 
-            //receive pkts
-            DatagramPacket recievePkt = new DatagramPacket(inData, inData.length);
-            socket.receive(recievePkt);
+            // response from server
+            DatagramPacket response = new DatagramPacket(buffer, buffer.length);
+            socket.receive(response);
 
-            System.out.println("Replay from Server: "+recievePkt.getData());
+            String quote = new String(buffer, 0, response.getLength());
+
+            System.out.println("Replay from Server: " + quote);
         } catch (IOException e) {
             System.out.println(e);
         }
-
         // TODO To be completed by the student
 
         return cache.getCachedResults(node);
@@ -222,6 +215,7 @@ public class DNSLookupService {
         // TODO To be completed by the student
     }
 
+    // TODO complete it and call it somewhere
     private static void verbosePrintResourceRecord(ResourceRecord record, int rtype) {
         if (verboseTracing)
             System.out.format("       %-30s %-10d %-4s %s\n", record.getHostName(),
