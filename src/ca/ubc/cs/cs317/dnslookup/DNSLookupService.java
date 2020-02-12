@@ -173,30 +173,30 @@ public class DNSLookupService {
             return Collections.emptySet();
         }
 
-        try {
-            // TODO : implement UDP connection successfully
+        Set<ResourceRecord> results = cache.getCachedResults(node);
 
-            // UDP connection
-            DatagramSocket socket = new DatagramSocket();
-            InetAddress IP = InetAddress.getByName(node.getHostName());
-
-            // create buffer to process data
-            byte[] buffer = new byte[1024];
-
-            // request to server
-            DatagramPacket request = new DatagramPacket(buffer, buffer.length, IP, DEFAULT_DNS_PORT);
-            socket.send(request);
-
-            // response from server
-            DatagramPacket response = new DatagramPacket(buffer, buffer.length);
-            socket.receive(response);
-
-            String quote = new String(buffer, 0, response.getLength());
-
-            System.out.println("Replay from Server: " + quote);
-        } catch (IOException e) {
-            System.out.println(e);
+        // If Node is Cached return it
+        if (!results.isEmpty()){
+            return results;
         }
+
+        DNSNode nodeCNAME = new DNSNode(node.getHostName(), RecordType.CNAME );
+
+        results = cache.getCachedResults(nodeCNAME);
+
+        // Checks if CNAME is Cached
+        if (results.isEmpty()){
+            // Retrieve from Server
+            retrieveResultsFromServer(node,rootServer);
+
+            // Updates results with cache
+            results = cache.getCachedResults(node);
+            return results;
+        }
+        else {
+            // CNAME is in Cache
+        }
+
         // TODO To be completed by the student
 
         return cache.getCachedResults(node);
@@ -212,6 +212,22 @@ public class DNSLookupService {
      */
     private static void retrieveResultsFromServer(DNSNode node, InetAddress server) {
 
+        try {
+            byte[] requestQuery = new byte[512];
+
+            DatagramPacket request = new DatagramPacket(requestQuery, requestQuery.length, server, DEFAULT_DNS_PORT);
+
+            socket.send(request);
+
+            byte[] responseQuery = new byte[512];
+
+            DatagramPacket response = new DatagramPacket(responseQuery,responseQuery.length);
+
+            socket.receive(response);
+        }
+        catch (IOException e){
+            System.out.println(e.getMessage());
+        }
         // TODO To be completed by the student
     }
 
