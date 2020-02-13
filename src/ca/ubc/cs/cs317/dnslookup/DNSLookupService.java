@@ -1,9 +1,15 @@
 package ca.ubc.cs.cs317.dnslookup;
 
 import java.io.Console;
-import java.io.IOException;
-import java.net.*;
+import java.net.DatagramSocket;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.io.*;
 
 public class DNSLookupService {
 
@@ -195,6 +201,11 @@ public class DNSLookupService {
         }
         else {
             // CNAME is in Cache
+            for (ResourceRecord cnameRecord : results) {
+                DNSNode CNameRecord = new DNSNode(cnameRecord.getHostName(),cnameRecord.getType());
+                // TODO Add a return somewhere
+                getResults(CNameRecord, indirectionLevel + 1);
+            }
         }
 
         // TODO To be completed by the student
@@ -215,6 +226,8 @@ public class DNSLookupService {
         try {
             byte[] requestQuery = new byte[512];
 
+            requestQuery = encodeQuery(requestQuery, node);
+
             DatagramPacket request = new DatagramPacket(requestQuery, requestQuery.length, server, DEFAULT_DNS_PORT);
 
             socket.send(request);
@@ -231,7 +244,64 @@ public class DNSLookupService {
         // TODO To be completed by the student
     }
 
-    // TODO complete it and call it somewhere
+    private static byte[] encodeQuery(byte[] query, DNSNode node){
+        String[] QNAME = node.getHostName().split(".");
+        Random rand = new Random();
+        int queryID = rand.nextInt(65535);
+        byte[] ID = ByteBuffer.allocate(4).putInt(queryID).array();
+
+        query[0] = ID[0];
+        query[1] = ID[1];
+
+        // FLAGS
+        query[2] = (byte) 0;
+        query[3] = (byte) 0;
+        // Query Count
+        query[4] = (byte) 0;
+        query[5] = (byte) 1;
+        // Answer Count
+        query[6] = (byte) 0;
+        query[7] = (byte) 0;
+        // Name Servers Records
+        query[8] = (byte) 0;
+        query[9] = (byte) 0;
+        // Additional Record Count
+        query[10] = (byte) 0;
+        query[11] = (byte) 0;
+
+        // QNAME
+        int current = 12;
+        for (int i=0 ; i < QNAME.length; i++){
+            int length = QNAME[i].length();
+            query[current] = (byte) length;
+            current++;
+
+            // byte[] array = QNAME[i].getBytes(StandardCharsets.UTF_8);
+
+            for (int j =0; j < QNAME[i].length(); j++){
+                char character = QNAME[i].charAt(j);
+                int num = Integer.valueOf(Integer.toHexString(character));
+
+                query[current] = (byte) num;
+                current++;
+            }
+        }
+        // END of QNAME
+        query[current++] = (byte) 0;
+        // QTYPE
+        byte[] QTYPE = ByteBuffer.allocate(4).putInt(node.getType().getCode()).array();
+        query[current++] = QTYPE[0];
+        query[current++] = QTYPE[1];
+        // QCLASS
+        query[current] = (byte) 1;
+
+        return query;
+    }
+
+    private static byte[] decodeQuery(byte[] query, DNSNode node){
+        return query;
+    }
+
     private static void verbosePrintResourceRecord(ResourceRecord record, int rtype) {
         if (verboseTracing)
             System.out.format("       %-30s %-10d %-4s %s\n", record.getHostName(),
