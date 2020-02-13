@@ -244,7 +244,7 @@ public class DNSLookupService {
         String[] QNAME = node.getHostName().split(".");
         Random rand = new Random();
         short queryID = (short) rand.nextInt(65535);
-        byte[] ID = ByteBuffer.allocate(2).putInt(queryID).array();
+        byte[] ID = ByteBuffer.allocate(2).putShort(queryID).array();
 
         query[0] = ID[0];
         query[1] = ID[1];
@@ -291,7 +291,7 @@ public class DNSLookupService {
         query[current++] = (byte) 0;
 
         // QTYPE
-        byte[] QTYPE = ByteBuffer.allocate(2).putInt((short) node.getType().getCode()).array();
+        byte[] QTYPE = ByteBuffer.allocate(2).putShort((short) node.getType().getCode()).array();
         query[current++] = QTYPE[0];
         query[current++] = QTYPE[1];
 
