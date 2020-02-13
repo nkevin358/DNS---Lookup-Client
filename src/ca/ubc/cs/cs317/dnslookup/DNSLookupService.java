@@ -1,15 +1,10 @@
 package ca.ubc.cs.cs317.dnslookup;
 
 import java.io.Console;
-import java.net.DatagramSocket;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.io.IOException;
+import java.net.*;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.io.*;
 
 public class DNSLookupService {
 
@@ -186,6 +181,8 @@ public class DNSLookupService {
             return results;
         }
 
+        // TODO need to do retrieveResultsFromServer for node and its type before changing it to CNAME type!!
+
         DNSNode nodeCNAME = new DNSNode(node.getHostName(), RecordType.CNAME );
 
         results = cache.getCachedResults(nodeCNAME);
@@ -222,7 +219,7 @@ public class DNSLookupService {
      * @param server Address of the server to be used for the query.
      */
     private static void retrieveResultsFromServer(DNSNode node, InetAddress server) {
-
+        // TODO To be completed by the student
         try {
             byte[] requestQuery = new byte[512];
 
@@ -241,7 +238,6 @@ public class DNSLookupService {
         catch (IOException e){
             System.out.println(e.getMessage());
         }
-        // TODO To be completed by the student
     }
 
     private static byte[] encodeQuery(byte[] query, DNSNode node){
@@ -256,15 +252,19 @@ public class DNSLookupService {
         // FLAGS
         query[2] = (byte) 0;
         query[3] = (byte) 0;
+
         // Query Count
         query[4] = (byte) 0;
         query[5] = (byte) 1;
+
         // Answer Count
         query[6] = (byte) 0;
         query[7] = (byte) 0;
+
         // Name Servers Records
         query[8] = (byte) 0;
         query[9] = (byte) 0;
+
         // Additional Record Count
         query[10] = (byte) 0;
         query[11] = (byte) 0;
@@ -286,12 +286,15 @@ public class DNSLookupService {
                 current++;
             }
         }
+
         // END of QNAME
         query[current++] = (byte) 0;
+
         // QTYPE
         byte[] QTYPE = ByteBuffer.allocate(4).putInt(node.getType().getCode()).array();
         query[current++] = QTYPE[0];
         query[current++] = QTYPE[1];
+
         // QCLASS
         query[current] = (byte) 1;
 
@@ -299,7 +302,16 @@ public class DNSLookupService {
     }
 
     private static byte[] decodeQuery(byte[] query, DNSNode node){
+
+        // TODO translate hex to string
+        hexToString(query);
+
         return query;
+    }
+
+    // convert hex from byte[] to string to create FQDN
+    private static String hexToString(byte[] query) {
+        return new String();
     }
 
     private static void verbosePrintResourceRecord(ResourceRecord record, int rtype) {
