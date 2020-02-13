@@ -243,8 +243,8 @@ public class DNSLookupService {
     private static byte[] encodeQuery(byte[] query, DNSNode node){
         String[] QNAME = node.getHostName().split(".");
         Random rand = new Random();
-        int queryID = rand.nextInt(65535);
-        byte[] ID = ByteBuffer.allocate(4).putInt(queryID).array();
+        short queryID = (short) rand.nextInt(65535);
+        byte[] ID = ByteBuffer.allocate(2).putInt(queryID).array();
 
         query[0] = ID[0];
         query[1] = ID[1];
@@ -276,7 +276,7 @@ public class DNSLookupService {
             query[current] = (byte) length;
             current++;
 
-            // byte[] array = QNAME[i].getBytes(StandardCharsets.UTF_8);
+            // byte[] array = QNAME[i].getBytes("UTF-8");
 
             for (int j =0; j < QNAME[i].length(); j++){
                 char character = QNAME[i].charAt(j);
@@ -291,7 +291,7 @@ public class DNSLookupService {
         query[current++] = (byte) 0;
 
         // QTYPE
-        byte[] QTYPE = ByteBuffer.allocate(4).putInt(node.getType().getCode()).array();
+        byte[] QTYPE = ByteBuffer.allocate(2).putInt((short) node.getType().getCode()).array();
         query[current++] = QTYPE[0];
         query[current++] = QTYPE[1];
 
@@ -301,8 +301,10 @@ public class DNSLookupService {
         return query;
     }
 
-    private static byte[] decodeQuery(byte[] query, DNSNode node){
-
+    private static byte[] decodeQuery(byte[] query, DNSNode node) {
+        // use bytebuffer to know the length of the response
+        // response is in big endian
+        // bytebuffer, bytearrayinputstream, datainputstream
         // TODO translate hex to string
         hexToString(query);
 
