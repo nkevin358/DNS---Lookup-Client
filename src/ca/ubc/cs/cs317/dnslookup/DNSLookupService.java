@@ -219,11 +219,14 @@ public class DNSLookupService {
      * @param server Address of the server to be used for the query.
      */
     private static void retrieveResultsFromServer(DNSNode node, InetAddress server) {
-        // TODO To be completed by the student
+        // TODO
         try {
             byte[] requestQuery = new byte[512];
 
             requestQuery = encodeQuery(requestQuery, node);
+
+            System.out.println(requestQuery[0]);
+            System.out.println(requestQuery[1]);
 
             DatagramPacket request = new DatagramPacket(requestQuery, requestQuery.length, server, DEFAULT_DNS_PORT);
 
@@ -234,6 +237,9 @@ public class DNSLookupService {
             DatagramPacket response = new DatagramPacket(responseQuery,responseQuery.length);
 
             socket.receive(response);
+
+            System.out.println(responseQuery[0]);
+            System.out.println(responseQuery[1]);
         }
         catch (IOException e){
             System.out.println(e.getMessage());
@@ -243,11 +249,12 @@ public class DNSLookupService {
     private static byte[] encodeQuery(byte[] query, DNSNode node){
         String[] QNAME = node.getHostName().split(".");
         Random rand = new Random();
-        short queryID = (short) rand.nextInt(65535);
-        byte[] ID = ByteBuffer.allocate(2).putShort(queryID).array();
+        int queryID = rand.nextInt(65535);
+        int ID1 =  (queryID >>> 8);
+        int ID2 =  queryID & 0xff;
 
-        query[0] = ID[0];
-        query[1] = ID[1];
+        query[0] = (byte) ID1;
+        query[1] = (byte) ID2;
 
         // FLAGS
         query[2] = (byte) 0;
@@ -280,7 +287,7 @@ public class DNSLookupService {
 
             for (int j =0; j < QNAME[i].length(); j++){
                 char character = QNAME[i].charAt(j);
-                int num = Integer.valueOf(Integer.toHexString(character));
+                int num = (int) character;
 
                 query[current] = (byte) num;
                 current++;
@@ -291,9 +298,9 @@ public class DNSLookupService {
         query[current++] = (byte) 0;
 
         // QTYPE
-        byte[] QTYPE = ByteBuffer.allocate(2).putShort((short) node.getType().getCode()).array();
-        query[current++] = QTYPE[0];
-        query[current++] = QTYPE[1];
+        int QTYPE = node.getType().getCode();
+        query[current++] = 0;
+        query[current++] = (byte) QTYPE;
 
         // QCLASS
         query[current] = (byte) 1;
