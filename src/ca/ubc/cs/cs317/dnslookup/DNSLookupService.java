@@ -3,7 +3,6 @@ package ca.ubc.cs.cs317.dnslookup;
 import java.io.Console;
 import java.io.IOException;
 import java.net.*;
-import java.nio.ByteBuffer;
 import java.util.*;
 
 public class DNSLookupService {
@@ -240,6 +239,8 @@ public class DNSLookupService {
 
             System.out.println(responseQuery[0]);
             System.out.println(responseQuery[1]);
+
+            decodeQuery(responseQuery, node);
         }
         catch (IOException e){
             System.out.println(e.getMessage());
@@ -247,7 +248,7 @@ public class DNSLookupService {
     }
 
     private static byte[] encodeQuery(byte[] query, DNSNode node){
-        String[] QNAME = node.getHostName().split(".");
+        String[] QNAME = node.getHostName().split("\\.");
         Random rand = new Random();
         int queryID = rand.nextInt(65535);
         int ID1 =  (queryID >>> 8);
@@ -276,6 +277,8 @@ public class DNSLookupService {
         query[10] = (byte) 0;
         query[11] = (byte) 0;
 
+        System.out.println(QNAME.length);
+
         // QNAME
         int current = 12;
         for (int i=0 ; i < QNAME.length; i++){
@@ -295,15 +298,16 @@ public class DNSLookupService {
         }
 
         // END of QNAME
-        query[current++] = (byte) 0;
+        query[current] = (byte) 0;
 
         // QTYPE
         int QTYPE = node.getType().getCode();
-        query[current++] = 0;
-        query[current++] = (byte) QTYPE;
+        query[++current] = 0;
+        query[++current] = (byte) QTYPE;
 
         // QCLASS
-        query[current] = (byte) 1;
+        query[++current] = (byte) 0;
+        query[++current] = (byte) 1;
 
         return query;
     }
@@ -312,15 +316,59 @@ public class DNSLookupService {
         // use bytebuffer to know the length of the response
         // response is in big endian
         // bytebuffer, bytearrayinputstream, datainputstream
+
+
+        // Check if AA is true or false
+        int flagA = query[2];
+        int QR = (flagA >> 7) & 1;
+        int AA = (flagA >> 2) & 1;
+        System.out.println("AA: " + AA);
+        System.out.println("QR: " + QR);
+
+        // Answer count
+        int answerCount = twoBytesToInt(query[6], query[7]);
+        System.out.println("AC: " + answerCount);
+
+        // Name server count
+        int nsCount = twoBytesToInt(query[8], query[9]);
+        System.out.println("NS: " + nsCount);
+
+        // Additional Record Count
+        int arCount = twoBytesToInt(query[10], query[11]);
+        System.out.println("AR: " + arCount);
+
+
+
+
+
+
+
         // TODO translate hex to string
-        hexToString(query);
+        System.out.println(hexToString(query, 12));
+
 
         return query;
     }
 
+    private static int twoBytesToInt(byte a, byte b) {
+        return (a << 8) | b & 0xFF;
+    }
+
     // convert hex from byte[] to string to create FQDN
-    private static String hexToString(byte[] query) {
-        return new String();
+    private static String hexToString(byte[] query, int current) {
+        int currentLen = query[current];
+        System.out.println(currentLen);
+        StringBuilder sb = new StringBuilder();
+
+        while (currentLen != 0) {
+            for (int i = 0; i < currentLen ; i++) {
+                sb.append((char) query[++current]);
+            }
+
+            currentLen = query[++current];
+        }
+
+        return sb.toString();
     }
 
     private static void verbosePrintResourceRecord(ResourceRecord record, int rtype) {
