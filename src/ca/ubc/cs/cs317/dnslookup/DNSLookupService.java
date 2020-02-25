@@ -240,7 +240,12 @@ public class DNSLookupService {
             System.out.println(responseQuery[0]);
             System.out.println(responseQuery[1]);
 
-            decodeQuery(responseQuery, node);
+            QueryTrace qt = decodeQuery(responseQuery, node);
+
+            // TODO
+            if (!qt.isAuthoritative()) {
+                retrieveResultsFromServer(qt.getNode(), qt.getNameServers().get(0).getInetResult());
+            }
         }
         catch (IOException e){
             System.out.println(e.getMessage());
@@ -261,7 +266,7 @@ public class DNSLookupService {
         query[2] = (byte) 0;
         query[3] = (byte) 0;
 
-        // Query Count
+        // QueryTrace Count
         query[4] = (byte) 0;
         query[5] = (byte) 1;
 
@@ -276,8 +281,6 @@ public class DNSLookupService {
         // Additional Record Count
         query[10] = (byte) 0;
         query[11] = (byte) 0;
-
-        System.out.println(QNAME.length);
 
         // QNAME
         int current = 12;
@@ -312,11 +315,13 @@ public class DNSLookupService {
         return query;
     }
 
-    private static byte[] decodeQuery(byte[] query, DNSNode node) {
+    private static QueryTrace decodeQuery(byte[] query, DNSNode node) {
         // use bytebuffer to know the length of the response
         // response is in big endian
         // bytebuffer, bytearrayinputstream, datainputstream
 
+        // QueryID
+        int queryID = twoBytesToInt(query[0], query[1]);
 
         // Check if AA is true or false
         int flagA = query[2];
@@ -337,17 +342,27 @@ public class DNSLookupService {
         int arCount = twoBytesToInt(query[10], query[11]);
         System.out.println("AR: " + arCount);
 
+        Pair pair = byteArrayToString(query, 12);
+        String FQDN = pair.getFQDN();
+        int endIndex = pair.getEndIndex();
+        System.out.println(FQDN + " " + endIndex);
 
+        // TODO
+        // Decode answer
+        if (AA == 1 && answerCount > 0) {
+            decodeAnswer(query, endIndex);
+        }
 
+        // TODO
+        // Decode authority
+        decodeAuthority(query, endIndex);
 
+        // TODO
+        // Decode additional
+        decodeAdditional(query, endIndex);
 
-
-
-        // TODO translate hex to string
-        System.out.println(hexToString(query, 12));
-
-
-        return query;
+        // TODO
+        return new QueryTrace();
     }
 
     private static int twoBytesToInt(byte a, byte b) {
@@ -355,7 +370,8 @@ public class DNSLookupService {
     }
 
     // convert hex from byte[] to string to create FQDN
-    private static String hexToString(byte[] query, int current) {
+    private static Pair byteArrayToString(byte[] query, int current) {
+        // TODO look into a better way to get current after this function runs
         int currentLen = query[current];
         System.out.println(currentLen);
         StringBuilder sb = new StringBuilder();
@@ -364,11 +380,23 @@ public class DNSLookupService {
             for (int i = 0; i < currentLen ; i++) {
                 sb.append((char) query[++current]);
             }
-
             currentLen = query[++current];
+            if (currentLen != 0) sb.append(".");
         }
 
-        return sb.toString();
+        return new Pair(sb.toString(), ++current);
+    }
+
+    private static void decodeAnswer(byte[] query, int startIndex) {
+
+    }
+
+    private static void decodeAuthority(byte[] query, int startIndex) {
+
+    }
+
+    private static void decodeAdditional(byte[] query, int startIndex) {
+
     }
 
     private static void verbosePrintResourceRecord(ResourceRecord record, int rtype) {
