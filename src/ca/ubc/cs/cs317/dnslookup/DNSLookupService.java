@@ -225,9 +225,6 @@ public class DNSLookupService {
 
             requestQuery = encodeQuery(requestQuery, node);
 
-            System.out.println(requestQuery[0]);
-            System.out.println(requestQuery[1]);
-
             DatagramPacket request = new DatagramPacket(requestQuery, requestQuery.length, server, DEFAULT_DNS_PORT);
 
             socket.send(request);
@@ -238,14 +235,11 @@ public class DNSLookupService {
 
             socket.receive(response);
 
-            System.out.println(responseQuery[0]);
-            System.out.println(responseQuery[1]);
-
             QueryTrace qt = decodeQuery(responseQuery, node);
 
             // TODO
             if (!qt.isAuthoritative()) {
-                retrieveResultsFromServer(qt.getNode(), qt.getNameServers().get(0).getInetResult());
+                //retrieveResultsFromServer(qt.getNode(), qt.getNameServers().get(0).getInetResult());
             }
         }
         catch (IOException e){
@@ -256,13 +250,15 @@ public class DNSLookupService {
     private static byte[] encodeQuery(byte[] query, DNSNode node){
         String[] QNAME = node.getHostName().split("\\.");
         Random rand = new Random();
-        int queryID = rand.nextInt(65535);
-        int ID1 =  (queryID >>> 8);
-        int ID2 =  queryID & 0xff;
+        int queryId = rand.nextInt(65535);
+        int ID1 =  (queryId >>> 8);
+        int ID2 =  queryId & 0xff;
 
         query[0] = (byte) ID1;
         query[1] = (byte) ID2;
 
+        System.out.println("encoded queryId: " + twoBytesToInt(query[0], query[1]));
+        
         // FLAGS
         query[2] = (byte) 0;
         query[3] = (byte) 0;
@@ -322,7 +318,9 @@ public class DNSLookupService {
         // bytebuffer, bytearrayinputstream, datainputstream
 
         // QueryID
-        int queryID = twoBytesToInt(query[0], query[1]);
+        int queryId = twoBytesToInt(query[0], query[1]);
+
+        System.out.println("decoded queryId: " + queryId);
 
         // Check if AA is true or false
         int flagA = query[2];
@@ -367,7 +365,7 @@ public class DNSLookupService {
     }
 
     private static int twoBytesToInt(byte a, byte b) {
-        return (a << 8) | b & 0xFF;
+        return ((a & 0xff) << 8) | (b & 0xFF);
     }
 
     // convert hex from byte[] to string to create FQDN
