@@ -3,6 +3,7 @@ package ca.ubc.cs.cs317.dnslookup;
 import java.io.Console;
 import java.io.IOException;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 public class DNSLookupService {
@@ -397,6 +398,67 @@ public class DNSLookupService {
 
     private static void decodeAdditional(byte[] query, int startIndex) {
 
+    }
+
+    // Decodes ResourceRecord
+    private static ResourceRecord decodeResourceRecord(byte[] query, int startIndex){
+
+        // Get first bit
+        int pointer = getBit(query[startIndex], 7);
+        Pair recordPair = new Pair();
+
+        // Checks if there is a pointer
+        if (pointer != 1) {
+            recordPair = byteArrayToString(query, startIndex);
+        }
+        else {
+            // TODO Handle Pointer domain name
+        }
+
+        int current = recordPair.getEndIndex();
+        // Domain Name
+        String hostName = recordPair.getFQDN();
+        // Type
+        int type = twoBytesToInt(query[current], query[++current]);
+        RecordType recordType = RecordType.getByCode(type);
+        // Class
+        int recordClass = twoBytesToInt(query[++current], query[++current]);
+        // TTL
+        long TTL = getTTL(query, ++current);
+        // Length
+        current = current + 4;
+        int len = twoBytesToInt(query[current], query[++current]);
+        // Type is an Address 'A'
+        InetAddress address = getAddress(query, ++current);
+        // TODO check if address is not "A"
+
+        ResourceRecord record =  new ResourceRecord(hostName, recordType , TTL, address);
+
+        return record;
+    }
+
+    private static int getBit(byte x, int position){
+        return (x >> position) & 1;
+    }
+
+    private static InetAddress getAddress(byte[] query, int startIndex){
+        byte[] address = Arrays.copyOfRange(query, startIndex, (startIndex + 3));
+        try {
+            InetAddress IPv4add = InetAddress.getByAddress(address);
+            return IPv4add;
+        }
+        catch (UnknownHostException e){
+            System.out.println(e.getMessage());
+            return null;
+        }
+    }
+
+    private static int getTTL(byte[] query, int startIndex){
+        byte[] TTL = Arrays.copyOfRange(query, startIndex, (startIndex + 3));
+
+        ByteBuffer wrapped = ByteBuffer.wrap(TTL);
+
+        return wrapped.getInt();
     }
 
     private static void verbosePrintResourceRecord(ResourceRecord record, int rtype) {
