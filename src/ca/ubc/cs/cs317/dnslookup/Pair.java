@@ -4,6 +4,7 @@ import java.util.Objects;
 
 public class Pair {
     private String FQDN;
+    private ResourceRecord record;
     private int endIndex;
 
     public Pair() {}
@@ -13,12 +14,25 @@ public class Pair {
         this.endIndex = endIndex;
     }
 
+    public Pair(ResourceRecord record, int endIndex) {
+        this.record = record;
+        this.endIndex = endIndex;
+    }
+
     public String getFQDN() {
         return FQDN;
     }
 
     public void setFQDN(String FQDN) {
         this.FQDN = FQDN;
+    }
+
+    public ResourceRecord getRecord() {
+        return record;
+    }
+
+    public void setRecord(ResourceRecord record) {
+        this.record = record;
     }
 
     public int getEndIndex() {

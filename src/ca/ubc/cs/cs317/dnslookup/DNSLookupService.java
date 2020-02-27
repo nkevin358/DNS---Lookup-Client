@@ -317,9 +317,12 @@ public class DNSLookupService {
         // response is in big endian
         // bytebuffer, bytearrayinputstream, datainputstream
 
+        QueryTrace qt = new QueryTrace();
+
         // QueryID
         int queryId = twoBytesToInt(query[0], query[1]);
-
+        qt.setQueryId(queryId);
+        qt.setResponseId(queryId);
         System.out.println("decoded queryId: " + queryId);
 
         // Check if AA is true or false
@@ -346,22 +349,38 @@ public class DNSLookupService {
         int endIndex = pair.getEndIndex();
         System.out.println(FQDN + " " + endIndex);
 
-        // TODO
+        decodeResourceRecord(query, endIndex);
+
+        List<ResourceRecord> answers = new ArrayList<>();
+        List<ResourceRecord> nameServers = new ArrayList<>();
+        List<ResourceRecord> additionals = new ArrayList<>();
+
+        Pair pairRecord;
         // Decode answer
-        if (AA == 1 && answerCount > 0) {
-            decodeAnswer(query, endIndex);
+        while (AA == 1 && answerCount > 0) {
+            pairRecord = decodeResourceRecord(query, endIndex);
+            answers.add(pairRecord.getRecord());
+            endIndex = pairRecord.getEndIndex();
+            answerCount--;
         }
 
-        // TODO
         // Decode authority
-        decodeAuthority(query, endIndex);
+        while (nsCount > 0) {
+            pairRecord = decodeResourceRecord(query, endIndex);
+            nameServers.add(pairRecord.getRecord());
+            endIndex = pairRecord.getEndIndex();
+            nsCount--;
+        }
 
-        // TODO
         // Decode additional
-        decodeAdditional(query, endIndex);
+        while (arCount > 0) {
+            pairRecord = decodeResourceRecord(query, endIndex);
+            additionals.add(pairRecord.getRecord());
+            endIndex = pairRecord.getEndIndex();
+            arCount--;
+        }
 
-        // TODO
-        return new QueryTrace();
+        return qt;
     }
 
     private static int twoBytesToInt(byte a, byte b) {
@@ -381,9 +400,39 @@ public class DNSLookupService {
             }
             currentLen = query[++current];
             if (currentLen != 0) sb.append(".");
-        }
 
+            int pointerVal = (currentLen >> 6) & 3;
+
+            // uses pointer
+            if (pointerVal == 3) {
+                int offset = twoBytesToInt(query[current], query[++current]);
+                offset = offset & 63;
+                //
+                Pair pair = byteArrayToString(query, offset);
+                return new Pair(sb.append(pair.getFQDN()).toString(), current + 1);
+            }
+        }
         return new Pair(sb.toString(), ++current);
+    }
+
+    // convert hex from byte[] to string to create FQDN
+    private static Pair byteArrayToStringWithPointer(byte[] query, int current) {
+        // TODO look into a better way to get current after this function runs
+
+        int pointer = query[current];
+        int pointerVal = (pointer >> 6) & 3;
+
+        // uses pointer
+        if (pointerVal == 3) {
+            int offset = twoBytesToInt(query[current], query[++current]);
+            offset = offset & 63;
+            Pair pair = byteArrayToString(query, offset);
+            return new Pair(pair.getFQDN(), current+1);
+        }
+        // sequence of labels
+
+
+        return new Pair();
     }
 
     private static void decodeAnswer(byte[] query, int startIndex) {
@@ -399,8 +448,7 @@ public class DNSLookupService {
     }
 
     // Decodes ResourceRecord
-    private static ResourceRecord decodeResourceRecord(byte[] query, int startIndex){
-
+    private static Pair decodeResourceRecord(byte[] query, int startIndex){
         // Get first bit
         int pointer = getBit(query[startIndex], 7);
         Pair recordPair = new Pair();
@@ -422,17 +470,31 @@ public class DNSLookupService {
         // Class
         int recordClass = twoBytesToInt(query[++current], query[++current]);
         // TTL
-        long TTL = getTTL(query, ++current);
+        // TODO fix this buffer underflow exception
+        //long TTL = getTTL(query, ++current);
         // Length
         current = current + 4;
         int len = twoBytesToInt(query[current], query[++current]);
         // Type is an Address 'A'
-        InetAddress address = getAddress(query, ++current);
-        // TODO check if address is not "A"
 
-        ResourceRecord record =  new ResourceRecord(hostName, recordType , TTL, address);
+        ResourceRecord record;
+        if (recordType == RecordType.A) {
+            InetAddress address = getAddress(query, ++current);
+            System.out.println(address.getHostAddress());
+            record = new ResourceRecord(hostName, recordType, 0, address);
+            return new Pair(record, recordPair.getEndIndex());
+        }
+        Pair pair = byteArrayToString(query, startIndex);
+        System.out.println("hello:" + pair.getFQDN());
 
-        return record;
+        record = new ResourceRecord(hostName, recordType, 0, pair.getFQDN());
+
+        return new Pair(record, pair.getEndIndex());
+    }
+
+    private static String getResultText(byte[] query, int startIndex, int len) {
+
+        return new String();
     }
 
     private static int getBit(byte x, int position){
@@ -445,6 +507,7 @@ public class DNSLookupService {
             InetAddress IPv4add = InetAddress.getByAddress(address);
             return IPv4add;
         }
+        // TODO fix addr is of illegal length
         catch (UnknownHostException e){
             System.out.println(e.getMessage());
             return null;

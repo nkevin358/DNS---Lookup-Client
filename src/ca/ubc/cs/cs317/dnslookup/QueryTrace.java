@@ -12,13 +12,13 @@ public class QueryTrace {
     private boolean isAuthoritative;
     private List<ResourceRecord> answers;
     private List<ResourceRecord> nameServers;
-    private List<ResourceRecord> additional;
+    private List<ResourceRecord> additionals;
 
     // use verbosePrintResourceRecord() to print
 
     public QueryTrace() {}
 
-    public QueryTrace(int queryId, DNSNode node, int responseId, InetAddress server, boolean isAuthoritative, List<ResourceRecord> answers, List<ResourceRecord> nameServers, List<ResourceRecord> additional) {
+    public QueryTrace(int queryId, DNSNode node, int responseId, InetAddress server, boolean isAuthoritative, List<ResourceRecord> answers, List<ResourceRecord> nameServers, List<ResourceRecord> additionals) {
         this.queryId = queryId;
         this.node = node;
         this.responseId = responseId;
@@ -26,7 +26,7 @@ public class QueryTrace {
         this.isAuthoritative = isAuthoritative;
         this.answers = answers;
         this.nameServers = nameServers;
-        this.additional = additional;
+        this.additionals = additionals;
     }
 
     public int getQueryId() {
@@ -85,12 +85,12 @@ public class QueryTrace {
         this.nameServers = nameServers;
     }
 
-    public List<ResourceRecord> getAdditional() {
-        return additional;
+    public List<ResourceRecord> getAdditionals() {
+        return additionals;
     }
 
-    public void setAdditional(List<ResourceRecord> additional) {
-        this.additional = additional;
+    public void setAdditionals(List<ResourceRecord> additionals) {
+        this.additionals = additionals;
     }
 
     @Override
@@ -105,11 +105,11 @@ public class QueryTrace {
                 Objects.equals(server, that.server) &&
                 Objects.equals(answers, that.answers) &&
                 Objects.equals(nameServers, that.nameServers) &&
-                Objects.equals(additional, that.additional);
+                Objects.equals(additionals, that.additionals);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(queryId, node, responseId, server, isAuthoritative, answers, nameServers, additional);
+        return Objects.hash(queryId, node, responseId, server, isAuthoritative, answers, nameServers, additionals);
     }
 }
