@@ -3,7 +3,6 @@ package ca.ubc.cs.cs317.dnslookup;
 import java.io.Console;
 import java.io.IOException;
 import java.net.*;
-import java.nio.ByteBuffer;
 import java.util.*;
 
 public class DNSLookupService {
@@ -454,12 +453,12 @@ public class DNSLookupService {
         if (recordType == RecordType.A) {
             InetAddress address = getAddress(query, ++current);
             // System.out.println(address.getHostAddress());
-            record = new ResourceRecord(hostName, recordType, 0, address);
+            record = new ResourceRecord(hostName, recordType, TTL, address);
             return new Pair(record, recordPair.getEndIndex());
         }
         Pair pair = byteArrayToString(query, startIndex);
 
-        record = new ResourceRecord(hostName, recordType, 0, pair.getFQDN());
+        record = new ResourceRecord(hostName, recordType, TTL, pair.getFQDN());
 
         return new Pair(record, pair.getEndIndex());
     }
