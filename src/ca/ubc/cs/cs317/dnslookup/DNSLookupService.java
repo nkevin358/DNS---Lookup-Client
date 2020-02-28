@@ -236,6 +236,7 @@ public class DNSLookupService {
             socket.receive(response);
 
             QueryTrace qt = decodeQuery(responseQuery, node);
+            System.out.println("After Decoding");
 
             // TODO
             if (!qt.isAuthoritative()) {
@@ -349,13 +350,13 @@ public class DNSLookupService {
         int endIndex = pair.getEndIndex();
         System.out.println(FQDN + " " + endIndex);
 
-        decodeResourceRecord(query, endIndex);
-
         List<ResourceRecord> answers = new ArrayList<>();
         List<ResourceRecord> nameServers = new ArrayList<>();
         List<ResourceRecord> additionals = new ArrayList<>();
 
         Pair pairRecord;
+
+        System.out.println("Decoding Answers");
         // Decode answer
         while (AA == 1 && answerCount > 0) {
             pairRecord = decodeResourceRecord(query, endIndex);
@@ -364,6 +365,7 @@ public class DNSLookupService {
             answerCount--;
         }
 
+        System.out.println("Decoding Name Servers");
         // Decode authority
         while (nsCount > 0) {
             pairRecord = decodeResourceRecord(query, endIndex);
@@ -372,6 +374,7 @@ public class DNSLookupService {
             nsCount--;
         }
 
+        System.out.println("Decoding Additional");
         // Decode additional
         while (arCount > 0) {
             pairRecord = decodeResourceRecord(query, endIndex);
@@ -389,9 +392,19 @@ public class DNSLookupService {
 
     // convert hex from byte[] to string to create FQDN
     private static Pair byteArrayToString(byte[] query, int current) {
-        // TODO look into a better way to get current after this function runs
         int currentLen = query[current];
-        System.out.println(currentLen);
+
+        // Check if it starts with pointer
+        int firstPointerVal = (currentLen >> 6) & 3;
+        // uses pointer
+        if (firstPointerVal == 3) {
+            int offset = twoBytesToInt(query[current], query[++current]);
+            offset = offset & 63;
+            //
+            Pair pair = byteArrayToString(query, offset);
+            return new Pair (pair.getFQDN(), current + 1);
+        }
+
         StringBuilder sb = new StringBuilder();
 
         while (currentLen != 0) {
@@ -403,7 +416,7 @@ public class DNSLookupService {
 
             int pointerVal = (currentLen >> 6) & 3;
 
-            // uses pointer
+            // Checks if it uses pointer
             if (pointerVal == 3) {
                 int offset = twoBytesToInt(query[current], query[++current]);
                 offset = offset & 63;
@@ -415,51 +428,12 @@ public class DNSLookupService {
         return new Pair(sb.toString(), ++current);
     }
 
-    // convert hex from byte[] to string to create FQDN
-    private static Pair byteArrayToStringWithPointer(byte[] query, int current) {
-        // TODO look into a better way to get current after this function runs
-
-        int pointer = query[current];
-        int pointerVal = (pointer >> 6) & 3;
-
-        // uses pointer
-        if (pointerVal == 3) {
-            int offset = twoBytesToInt(query[current], query[++current]);
-            offset = offset & 63;
-            Pair pair = byteArrayToString(query, offset);
-            return new Pair(pair.getFQDN(), current+1);
-        }
-        // sequence of labels
-
-
-        return new Pair();
-    }
-
-    private static void decodeAnswer(byte[] query, int startIndex) {
-
-    }
-
-    private static void decodeAuthority(byte[] query, int startIndex) {
-
-    }
-
-    private static void decodeAdditional(byte[] query, int startIndex) {
-
-    }
-
     // Decodes ResourceRecord
     private static Pair decodeResourceRecord(byte[] query, int startIndex){
-        // Get first bit
-        int pointer = getBit(query[startIndex], 7);
         Pair recordPair = new Pair();
 
         // Checks if there is a pointer
-        if (pointer != 1) {
-            recordPair = byteArrayToString(query, startIndex);
-        }
-        else {
-            // TODO Handle Pointer domain name
-        }
+        recordPair = byteArrayToString(query, startIndex);
 
         int current = recordPair.getEndIndex();
         // Domain Name
@@ -470,8 +444,7 @@ public class DNSLookupService {
         // Class
         int recordClass = twoBytesToInt(query[++current], query[++current]);
         // TTL
-        // TODO fix this buffer underflow exception
-        //long TTL = getTTL(query, ++current);
+        long TTL = getTTL(query, ++current);
         // Length
         current = current + 4;
         int len = twoBytesToInt(query[current], query[++current]);
@@ -480,21 +453,15 @@ public class DNSLookupService {
         ResourceRecord record;
         if (recordType == RecordType.A) {
             InetAddress address = getAddress(query, ++current);
-            System.out.println(address.getHostAddress());
+            // System.out.println(address.getHostAddress());
             record = new ResourceRecord(hostName, recordType, 0, address);
             return new Pair(record, recordPair.getEndIndex());
         }
         Pair pair = byteArrayToString(query, startIndex);
-        System.out.println("hello:" + pair.getFQDN());
 
         record = new ResourceRecord(hostName, recordType, 0, pair.getFQDN());
 
         return new Pair(record, pair.getEndIndex());
-    }
-
-    private static String getResultText(byte[] query, int startIndex, int len) {
-
-        return new String();
     }
 
     private static int getBit(byte x, int position){
@@ -514,12 +481,8 @@ public class DNSLookupService {
         }
     }
 
-    private static int getTTL(byte[] query, int startIndex){
-        byte[] TTL = Arrays.copyOfRange(query, startIndex, (startIndex + 3));
-
-        ByteBuffer wrapped = ByteBuffer.wrap(TTL);
-
-        return wrapped.getInt();
+    public static long getTTL(byte[] query, int startIndex) {
+        return query[startIndex] << 24 | (query[++startIndex] & 0xff) << 16 | (query[++startIndex] & 0xff) << 8 | (query[++startIndex] & 0xff);
     }
 
     private static void verbosePrintResourceRecord(ResourceRecord record, int rtype) {
