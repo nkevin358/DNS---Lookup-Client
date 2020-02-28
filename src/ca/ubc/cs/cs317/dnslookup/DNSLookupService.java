@@ -228,7 +228,7 @@ public class DNSLookupService {
 
             socket.send(request);
 
-            byte[] responseQuery = new byte[512];
+            byte[] responseQuery = new byte[1024];
 
             DatagramPacket response = new DatagramPacket(responseQuery,responseQuery.length);
 
@@ -331,6 +331,10 @@ public class DNSLookupService {
         int AA = (flagA >> 2) & 1;
         System.out.println("AA: " + AA);
         System.out.println("QR: " + QR);
+
+        // Question count
+        int questionCount = twoBytesToInt(query[4], query[5]);
+        System.out.println("QC: " + questionCount);
 
         // Answer count
         int answerCount = twoBytesToInt(query[6], query[7]);
@@ -456,7 +460,7 @@ public class DNSLookupService {
             record = new ResourceRecord(hostName, recordType, TTL, address);
             return new Pair(record, recordPair.getEndIndex());
         }
-        Pair pair = byteArrayToString(query, startIndex);
+        Pair pair = byteArrayToString(query, ++current);
 
         record = new ResourceRecord(hostName, recordType, TTL, pair.getFQDN());
 
@@ -468,7 +472,7 @@ public class DNSLookupService {
     }
 
     private static InetAddress getAddress(byte[] query, int startIndex){
-        byte[] address = Arrays.copyOfRange(query, startIndex, (startIndex + 3));
+        byte[] address = Arrays.copyOfRange(query, startIndex, (startIndex + 4));
         try {
             InetAddress IPv4add = InetAddress.getByAddress(address);
             return IPv4add;
