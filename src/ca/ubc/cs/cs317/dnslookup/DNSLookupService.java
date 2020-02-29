@@ -180,8 +180,6 @@ public class DNSLookupService {
             return results;
         }
 
-        // TODO need to do retrieveResultsFromServer for node and its type before changing it to CNAME type!!
-
         DNSNode nodeCNAME = new DNSNode(node.getHostName(), RecordType.CNAME );
 
         results = cache.getCachedResults(nodeCNAME);
@@ -230,14 +228,28 @@ public class DNSLookupService {
 
             byte[] responseQuery = new byte[1024];
 
+            // TODO check transaction ID in response and query ID in request is the same
+
             DatagramPacket response = new DatagramPacket(responseQuery,responseQuery.length);
 
             socket.receive(response);
 
             QueryTrace qt = decodeQuery(responseQuery, node);
+
+            // No answers and no additional information
+            if (qt.getAnswers().size() == 0 &&
+                qt.getAdditionals().size() == 0 &&
+                qt.getNameServers().size() > 0) {
+                retrieveResultsFromServer(node, rootServer);
+            }
+
             System.out.println("After Decoding");
 
-            // TODO
+            System.out.println("print verbose");
+            verbosePrintResourceRecord(qt.getAdditionals().get(0), 1);
+            System.out.println("done verbose");
+
+            // continue iterating DNS hierarchy to find answer
             if (!qt.isAuthoritative()) {
                 //retrieveResultsFromServer(qt.getNode(), qt.getNameServers().get(0).getInetResult());
             }
@@ -313,10 +325,6 @@ public class DNSLookupService {
     }
 
     private static QueryTrace decodeQuery(byte[] query, DNSNode node) {
-        // use bytebuffer to know the length of the response
-        // response is in big endian
-        // bytebuffer, bytearrayinputstream, datainputstream
-
         QueryTrace qt = new QueryTrace();
 
         // QueryID
@@ -348,10 +356,18 @@ public class DNSLookupService {
         int arCount = twoBytesToInt(query[10], query[11]);
         System.out.println("AR: " + arCount);
 
+        // Question section
+        // QNAME
         Pair pair = byteArrayToString(query, 12);
         String FQDN = pair.getFQDN();
-        int endIndex = pair.getEndIndex();
-        System.out.println(FQDN + " " + endIndex);
+        int currentIndex = pair.getEndIndex();
+        System.out.println(FQDN + " " + currentIndex);
+
+        // QTYPE
+        int type = twoBytesToInt(query[currentIndex], query[++currentIndex]);
+        RecordType queryType = RecordType.getByCode(type);
+        // Increment for Question section
+        currentIndex += 2;
 
         List<ResourceRecord> answers = new ArrayList<>();
         List<ResourceRecord> nameServers = new ArrayList<>();
@@ -362,29 +378,35 @@ public class DNSLookupService {
         System.out.println("Decoding Answers");
         // Decode answer
         while (AA == 1 && answerCount > 0) {
-            pairRecord = decodeResourceRecord(query, endIndex);
+            pairRecord = decodeResourceRecord(query, currentIndex);
             answers.add(pairRecord.getRecord());
-            endIndex = pairRecord.getEndIndex();
+            cache.addResult(pairRecord.getRecord());
+            currentIndex = pairRecord.getEndIndex();
             answerCount--;
         }
 
         System.out.println("Decoding Name Servers");
         // Decode authority
         while (nsCount > 0) {
-            pairRecord = decodeResourceRecord(query, endIndex);
+            pairRecord = decodeResourceRecord(query, currentIndex);
             nameServers.add(pairRecord.getRecord());
-            endIndex = pairRecord.getEndIndex();
+            currentIndex = pairRecord.getEndIndex();
             nsCount--;
         }
 
         System.out.println("Decoding Additional");
         // Decode additional
         while (arCount > 0) {
-            pairRecord = decodeResourceRecord(query, endIndex);
+            pairRecord = decodeResourceRecord(query, currentIndex);
             additionals.add(pairRecord.getRecord());
-            endIndex = pairRecord.getEndIndex();
+            cache.addResult(pairRecord.getRecord());
+            currentIndex = pairRecord.getEndIndex();
             arCount--;
         }
+
+        qt.setAnswers(answers);
+        qt.setNameServers(nameServers);
+        qt.setAdditionals(additionals);
 
         return qt;
     }
@@ -432,11 +454,8 @@ public class DNSLookupService {
     }
 
     // Decodes ResourceRecord
-    private static Pair decodeResourceRecord(byte[] query, int startIndex){
-        Pair recordPair = new Pair();
-
-        // Checks if there is a pointer
-        recordPair = byteArrayToString(query, startIndex);
+    private static Pair decodeResourceRecord(byte[] query, int currentIndex){
+        Pair recordPair = byteArrayToString(query, currentIndex);
 
         int current = recordPair.getEndIndex();
         // Domain Name
@@ -451,14 +470,19 @@ public class DNSLookupService {
         // Length
         current = current + 4;
         int len = twoBytesToInt(query[current], query[++current]);
-        // Type is an Address 'A'
 
         ResourceRecord record;
+        // Type = 'A'
         if (recordType == RecordType.A) {
-            InetAddress address = getAddress(query, ++current);
-            // System.out.println(address.getHostAddress());
+            InetAddress address = getIPv4Address(query, ++current);
             record = new ResourceRecord(hostName, recordType, TTL, address);
-            return new Pair(record, recordPair.getEndIndex());
+            return new Pair(record, current+len);
+        }
+        // Type = 'AAAA'
+        if (recordType == RecordType.AAAA) {
+            InetAddress address = getIPv6Address(query, ++current);
+            record = new ResourceRecord(hostName, recordType, TTL, address);
+            return new Pair(record, current+len);
         }
         Pair pair = byteArrayToString(query, ++current);
 
@@ -467,17 +491,24 @@ public class DNSLookupService {
         return new Pair(record, pair.getEndIndex());
     }
 
-    private static int getBit(byte x, int position){
-        return (x >> position) & 1;
-    }
-
-    private static InetAddress getAddress(byte[] query, int startIndex){
-        byte[] address = Arrays.copyOfRange(query, startIndex, (startIndex + 4));
+    private static InetAddress getIPv4Address(byte[] query, int currentIndex) {
+        byte[] address = Arrays.copyOfRange(query, currentIndex, (currentIndex + 4));
         try {
             InetAddress IPv4add = InetAddress.getByAddress(address);
             return IPv4add;
         }
-        // TODO fix addr is of illegal length
+        catch (UnknownHostException e){
+            System.out.println(e.getMessage());
+            return null;
+        }
+    }
+
+    private static InetAddress getIPv6Address(byte[] query, int startIndex) {
+        byte[] address = Arrays.copyOfRange(query, startIndex, (startIndex + 16));
+        try {
+            InetAddress IPv6add = InetAddress.getByAddress(address);
+            return IPv6add;
+        }
         catch (UnknownHostException e){
             System.out.println(e.getMessage());
             return null;
