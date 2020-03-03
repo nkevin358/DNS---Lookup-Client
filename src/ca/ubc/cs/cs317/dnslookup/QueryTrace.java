@@ -9,16 +9,15 @@ public class QueryTrace {
     private DNSNode node;
     private int responseId;
     private InetAddress server;
-    private boolean isAuthoritative;
+    private int isAuthoritative;
     private List<ResourceRecord> answers;
     private List<ResourceRecord> nameServers;
     private List<ResourceRecord> additionals;
 
-    // use verbosePrintResourceRecord() to print
 
     public QueryTrace() {}
 
-    public QueryTrace(int queryId, DNSNode node, int responseId, InetAddress server, boolean isAuthoritative, List<ResourceRecord> answers, List<ResourceRecord> nameServers, List<ResourceRecord> additionals) {
+    public QueryTrace(int queryId, DNSNode node, int responseId, InetAddress server, int isAuthoritative, List<ResourceRecord> answers, List<ResourceRecord> nameServers, List<ResourceRecord> additionals) {
         this.queryId = queryId;
         this.node = node;
         this.responseId = responseId;
@@ -61,11 +60,11 @@ public class QueryTrace {
         this.server = server;
     }
 
-    public boolean isAuthoritative() {
+    public int isAuthoritative() {
         return isAuthoritative;
     }
 
-    public void setAuthoritative(boolean authoritative) {
+    public void setAuthoritative(int authoritative) {
         isAuthoritative = authoritative;
     }
 

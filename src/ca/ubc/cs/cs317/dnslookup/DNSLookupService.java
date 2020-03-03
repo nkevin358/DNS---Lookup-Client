@@ -215,25 +215,26 @@ public class DNSLookupService {
      */
     private static void retrieveResultsFromServer(DNSNode node, InetAddress server) {
         try {
+            // request query
             byte[] requestQuery = new byte[512];
-
             requestQuery = encodeQuery(requestQuery, node);
-
             DatagramPacket request = new DatagramPacket(requestQuery, requestQuery.length, server, DEFAULT_DNS_PORT);
-
             socket.send(request);
 
+            // response query
             byte[] responseQuery = new byte[1024];
-
-            // TODO check transaction ID in response and query ID in request is the same
-
             DatagramPacket response = new DatagramPacket(responseQuery,responseQuery.length);
-
             socket.receive(response);
 
+            int queryId = twoBytesToInt(requestQuery[0], requestQuery[1]);
+            // TODO check transaction ID in response and query ID in request is the same
             QueryTrace qt = decodeQuery(responseQuery, node);
 
-            // TODO: print when trace on use helpers that have already been made
+            qt.setQueryId(queryId);
+            qt.setNode(node);
+            qt.setServer(server);
+
+            tracePrint(qt);
 
             // TODO: cache answers and additional info
 
@@ -253,10 +254,8 @@ public class DNSLookupService {
             }
 */
 
-            System.out.println("After Decoding");
-
             // continue iterating DNS hierarchy to find answer
-            if (!qt.isAuthoritative()) {
+            if (qt.isAuthoritative() == 0) {
                 //retrieveResultsFromServer(qt.getNode(), qt.getNameServers().get(0).getInetResult());
             }
         }
@@ -267,16 +266,15 @@ public class DNSLookupService {
 
     private static byte[] encodeQuery(byte[] query, DNSNode node){
         String[] QNAME = node.getHostName().split("\\.");
+
+        // Query ID
         Random rand = new Random();
         int queryId = rand.nextInt(65535);
         int ID1 =  (queryId >>> 8);
         int ID2 =  queryId & 0xff;
-
         query[0] = (byte) ID1;
         query[1] = (byte) ID2;
 
-        System.out.println("encoded queryId: " + twoBytesToInt(query[0], query[1]));
-        
         // FLAGS
         query[2] = (byte) 0;
         query[3] = (byte) 0;
@@ -335,14 +333,13 @@ public class DNSLookupService {
 
         // QueryID
         int queryId = twoBytesToInt(query[0], query[1]);
-        qt.setQueryId(queryId);
         qt.setResponseId(queryId);
-        System.out.println("decoded queryId: " + queryId);
 
         // Check if AA is true or false
         int flagA = query[2];
         int QR = (flagA >> 7) & 1;
         int AA = (flagA >> 2) & 1;
+        qt.setAuthoritative(AA);
 
         // Question count
         int questionCount = twoBytesToInt(query[4], query[5]);
@@ -376,28 +373,23 @@ public class DNSLookupService {
 
         Pair pairRecord;
 
-        printResourceRecordTitle("Answers", answerCount);
         // Decode answer
         while (AA == 1 && answerCount > 0) {
             pairRecord = decodeResourceRecord(query, currentIndex);
             answers.add(pairRecord.getRecord());
             cache.addResult(pairRecord.getRecord());
             currentIndex = pairRecord.getEndIndex();
-            verbosePrintResourceRecord(pairRecord.getRecord(), pairRecord.getRecord().getType().getCode());
             answerCount--;
         }
 
-        printResourceRecordTitle("Nameservers", nsCount);
         // Decode authority
         while (nsCount > 0) {
             pairRecord = decodeResourceRecord(query, currentIndex);
             nameServers.add(pairRecord.getRecord());
             currentIndex = pairRecord.getEndIndex();
             nsCount--;
-            verbosePrintResourceRecord(pairRecord.getRecord(), pairRecord.getRecord().getType().getCode());
         }
 
-        printResourceRecordTitle("Additional Information", arCount);
         // Decode additional
         while (arCount > 0) {
             pairRecord = decodeResourceRecord(query, currentIndex);
@@ -405,7 +397,6 @@ public class DNSLookupService {
             cache.addResult(pairRecord.getRecord());
             currentIndex = pairRecord.getEndIndex();
             arCount--;
-            verbosePrintResourceRecord(pairRecord.getRecord(), pairRecord.getRecord().getType().getCode());
         }
 
         qt.setAnswers(answers);
@@ -518,13 +509,27 @@ public class DNSLookupService {
         }
     }
 
-    public static long getTTL(byte[] query, int startIndex) {
+    private static long getTTL(byte[] query, int startIndex) {
         return query[startIndex] << 24 | (query[++startIndex] & 0xff) << 16 | (query[++startIndex] & 0xff) << 8 | (query[++startIndex] & 0xff);
+    }
+
+    private static void tracePrint(QueryTrace qt) {
+        printQueryIdTitle(qt.getQueryId(), qt.getNode().getHostName(), qt.getNode().getType(), qt.getServer());
+        printResponseIdTitle(qt.getResponseId(), qt.isAuthoritative());
+
+        printResourceRecordTitle("Answers", qt.getAnswers().size());
+        verbosePrintResourceRecordList(qt.getAnswers());
+
+        printResourceRecordTitle("Nameservers", qt.getNameServers().size());
+        verbosePrintResourceRecordList(qt.getNameServers());
+
+        printResourceRecordTitle("Additional Information", qt.getAdditionals().size());
+        verbosePrintResourceRecordList(qt.getAdditionals());
     }
 
     private static void printQueryIdTitle(int queryId, String hostname, RecordType type, InetAddress server) {
         if (verboseTracing)
-            System.out.println("Query ID     " + queryId + " " + hostname + "  " + type.toString() + " --> " + server);
+            System.out.println("Query ID     " + queryId + " " + hostname + "  " + type.toString() + " --> " + server.getHostAddress());
     }
 
     private static void printResponseIdTitle(int responseId, int authoritative) {
@@ -545,6 +550,14 @@ public class DNSLookupService {
                     record.getTTL(),
                     record.getType() == RecordType.OTHER ? rtype : record.getType(),
                     record.getTextResult());
+    }
+
+    private static void verbosePrintResourceRecordList(List<ResourceRecord> records) {
+        if (records != null) {
+            for (ResourceRecord record : records) {
+                verbosePrintResourceRecord(record, record.getType().getCode());
+            }
+        }
     }
 
     /**
