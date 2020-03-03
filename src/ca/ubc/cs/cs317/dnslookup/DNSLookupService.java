@@ -235,6 +235,7 @@ public class DNSLookupService {
             socket.receive(response);
 
             QueryTrace qt = decodeQuery(responseQuery, node);
+/*
 
             // No answers and no additional information
             if (qt.getAnswers().size() == 0 &&
@@ -242,12 +243,13 @@ public class DNSLookupService {
                 qt.getNameServers().size() > 0) {
                 retrieveResultsFromServer(node, rootServer);
             }
+*/
 
             System.out.println("After Decoding");
 
-            System.out.println("print verbose");
-            verbosePrintResourceRecord(qt.getAdditionals().get(0), 1);
-            System.out.println("done verbose");
+            System.out.println("print trace");
+            // TODO
+            System.out.println("done printing trace");
 
             // continue iterating DNS hierarchy to find answer
             if (!qt.isAuthoritative()) {
@@ -367,7 +369,8 @@ public class DNSLookupService {
         int type = twoBytesToInt(query[currentIndex], query[++currentIndex]);
         RecordType queryType = RecordType.getByCode(type);
         // Increment for Question section
-        currentIndex += 2;
+        currentIndex += 3;
+        System.out.println(currentIndex);
 
         List<ResourceRecord> answers = new ArrayList<>();
         List<ResourceRecord> nameServers = new ArrayList<>();
@@ -391,7 +394,9 @@ public class DNSLookupService {
             pairRecord = decodeResourceRecord(query, currentIndex);
             nameServers.add(pairRecord.getRecord());
             currentIndex = pairRecord.getEndIndex();
+            System.out.println("NS CurrentIndex: " + currentIndex);
             nsCount--;
+            System.out.println("Remaining NS: " + nsCount);
         }
 
         System.out.println("Decoding Additional");
@@ -401,7 +406,9 @@ public class DNSLookupService {
             additionals.add(pairRecord.getRecord());
             cache.addResult(pairRecord.getRecord());
             currentIndex = pairRecord.getEndIndex();
+            System.out.println("AR CurrentIndex: " + currentIndex);
             arCount--;
+            System.out.println("Remaining AR: " + arCount);
         }
 
         qt.setAnswers(answers);
@@ -417,7 +424,8 @@ public class DNSLookupService {
 
     // convert hex from byte[] to string to create FQDN
     private static Pair byteArrayToString(byte[] query, int current) {
-        int currentLen = query[current];
+        int currentLen = query[current] & 0xff;
+        System.out.println("Length:" + currentLen);
 
         // Check if it starts with pointer
         int firstPointerVal = (currentLen >> 6) & 3;
@@ -425,6 +433,7 @@ public class DNSLookupService {
         if (firstPointerVal == 3) {
             int offset = twoBytesToInt(query[current], query[++current]);
             offset = offset & 63;
+            System.out.println("Offset:" + offset);
             //
             Pair pair = byteArrayToString(query, offset);
             return new Pair (pair.getFQDN(), current + 1);
@@ -432,11 +441,15 @@ public class DNSLookupService {
 
         StringBuilder sb = new StringBuilder();
 
+        System.out.println("After Pointer");
+
         while (currentLen != 0) {
             for (int i = 0; i < currentLen ; i++) {
-                sb.append((char) query[++current]);
+                int charInt = query[++current] & 0xff;
+                char character = (char) charInt;
+                sb.append(character);
             }
-            currentLen = query[++current];
+            currentLen = query[++current] & 0xff;
             if (currentLen != 0) sb.append(".");
 
             int pointerVal = (currentLen >> 6) & 3;
@@ -460,6 +473,7 @@ public class DNSLookupService {
         int current = recordPair.getEndIndex();
         // Domain Name
         String hostName = recordPair.getFQDN();
+        System.out.println("Host Name: " +hostName);
         // Type
         int type = twoBytesToInt(query[current], query[++current]);
         RecordType recordType = RecordType.getByCode(type);
@@ -470,11 +484,12 @@ public class DNSLookupService {
         // Length
         current = current + 4;
         int len = twoBytesToInt(query[current], query[++current]);
-
+        System.out.println("RDATA LEN: " + len);
         ResourceRecord record;
         // Type = 'A'
         if (recordType == RecordType.A) {
             InetAddress address = getIPv4Address(query, ++current);
+            System.out.println(address.getHostAddress());
             record = new ResourceRecord(hostName, recordType, TTL, address);
             return new Pair(record, current+len);
         }
@@ -485,7 +500,7 @@ public class DNSLookupService {
             return new Pair(record, current+len);
         }
         Pair pair = byteArrayToString(query, ++current);
-
+        System.out.println(pair.getFQDN());
         record = new ResourceRecord(hostName, recordType, TTL, pair.getFQDN());
 
         return new Pair(record, pair.getEndIndex());
