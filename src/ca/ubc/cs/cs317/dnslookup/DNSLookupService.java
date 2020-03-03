@@ -1,5 +1,7 @@
 package ca.ubc.cs.cs317.dnslookup;
 
+import com.sun.jndi.dns.ResourceRecord;
+
 import java.io.Console;
 import java.io.IOException;
 import java.net.*;
@@ -235,8 +237,8 @@ public class DNSLookupService {
             socket.receive(response);
 
             QueryTrace qt = decodeQuery(responseQuery, node);
-/*
 
+/*
             // No answers and no additional information
             if (qt.getAnswers().size() == 0 &&
                 qt.getAdditionals().size() == 0 &&
@@ -246,10 +248,6 @@ public class DNSLookupService {
 */
 
             System.out.println("After Decoding");
-
-            System.out.println("print trace");
-            // TODO
-            System.out.println("done printing trace");
 
             // continue iterating DNS hierarchy to find answer
             if (!qt.isAuthoritative()) {
@@ -432,7 +430,8 @@ public class DNSLookupService {
         // uses pointer
         if (firstPointerVal == 3) {
             int offset = twoBytesToInt(query[current], query[++current]);
-            offset = offset & 63;
+            System.out.println("Offset before shifting: " + offset);
+            offset = offset & 16383;
             System.out.println("Offset:" + offset);
             //
             Pair pair = byteArrayToString(query, offset);
@@ -489,18 +488,19 @@ public class DNSLookupService {
         // Type = 'A'
         if (recordType == RecordType.A) {
             InetAddress address = getIPv4Address(query, ++current);
-            System.out.println(address.getHostAddress());
+            System.out.println("IPV4 Address: " + address.getHostAddress());
             record = new ResourceRecord(hostName, recordType, TTL, address);
             return new Pair(record, current+len);
         }
         // Type = 'AAAA'
         if (recordType == RecordType.AAAA) {
             InetAddress address = getIPv6Address(query, ++current);
+            System.out.println("IPV6 Address: " + address);
             record = new ResourceRecord(hostName, recordType, TTL, address);
             return new Pair(record, current+len);
         }
         Pair pair = byteArrayToString(query, ++current);
-        System.out.println(pair.getFQDN());
+        System.out.println("Named Server FQDN: " + pair.getFQDN());
         record = new ResourceRecord(hostName, recordType, TTL, pair.getFQDN());
 
         return new Pair(record, pair.getEndIndex());
