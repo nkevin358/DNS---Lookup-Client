@@ -202,8 +202,6 @@ public class DNSLookupService {
             }
         }
 
-        // TODO To be completed by the student
-
         return cache.getCachedResults(node);
     }
 
@@ -216,7 +214,6 @@ public class DNSLookupService {
      * @param server Address of the server to be used for the query.
      */
     private static void retrieveResultsFromServer(DNSNode node, InetAddress server) {
-        // TODO
         try {
             byte[] requestQuery = new byte[512];
 
@@ -238,6 +235,15 @@ public class DNSLookupService {
 
             // TODO: print when trace on use helpers that have already been made
 
+            // TODO: cache answers and additional info
+
+            // TODO: handle traversing for case 1 (see docs)
+            //
+            // TODO: handle traversing for case 2
+
+            // TODO: handle traversing for case 3
+
+            // TODO: handle traversing for case 4 - cname
 /*
             // No answers and no additional information
             if (qt.getAnswers().size() == 0 &&
