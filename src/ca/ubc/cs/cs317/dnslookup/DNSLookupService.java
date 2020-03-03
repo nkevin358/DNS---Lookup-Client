@@ -227,7 +227,9 @@ public class DNSLookupService {
             socket.receive(response);
 
             int queryId = twoBytesToInt(requestQuery[0], requestQuery[1]);
-            // TODO check transaction ID in response and query ID in request is the same
+            if(!checkErrors(requestQuery,responseQuery)){
+                return;
+            }
             QueryTrace qt = decodeQuery(responseQuery, node);
 
             qt.setQueryId(queryId);
@@ -511,6 +513,22 @@ public class DNSLookupService {
 
     private static long getTTL(byte[] query, int startIndex) {
         return query[startIndex] << 24 | (query[++startIndex] & 0xff) << 16 | (query[++startIndex] & 0xff) << 8 | (query[++startIndex] & 0xff);
+    }
+
+    private static boolean checkErrors(byte[] query, byte[] response){
+        int queryid = twoBytesToInt(query[0], query[1]);
+        int responseid = twoBytesToInt(response[0], response[1]);
+
+        int RFC = response[3] & 15;
+
+        if(queryid != responseid){
+            return false;
+        }
+
+        if (RFC != 0){
+            return false;
+        }
+        return true;
     }
 
     private static void tracePrint(QueryTrace qt) {
