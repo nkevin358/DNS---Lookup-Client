@@ -183,9 +183,12 @@ public class DNSLookupService {
         DNSNode nodeCNAME = new DNSNode(node.getHostName(), RecordType.CNAME);
 
         results = cache.getCachedResults(nodeCNAME);
+        System.out.println("getResults#: " + results.size());
+
 
         // when CNAME is not in cache
         if (results.isEmpty()) {
+            System.out.println("here?");
             // Retrieve from server
             retrieveResultsFromServer(node, rootServer);
 
@@ -196,6 +199,7 @@ public class DNSLookupService {
                 results = cache.getCachedResults(nodeCNAME);
 
                 if(!results.isEmpty()) {
+                    System.out.println("here bish");
                     ResourceRecord recordFromResults = results.iterator().next();
                     ResourceRecord resultRecord = getResultRecord(recordFromResults, node);
 
@@ -213,12 +217,17 @@ public class DNSLookupService {
                 }
             }
 
-            ResourceRecord recordFromResults = results.iterator().next();
-            if (recordFromResults.getType().equals(RecordType.CNAME)) {
-                ResourceRecord resultRecord = getResultRecord(recordFromResults, node);
-                ResourceRecord record = new ResourceRecord(node.getHostName(), node.getType(), resultRecord.getTTL(), resultRecord.getTextResult());
-                cache.addResult(record);
-                results = cache.getCachedResults(node);
+            if (!results.isEmpty()) {
+                System.out.println(results.size());
+                ResourceRecord recordFromResults = results.iterator().next();
+                if (recordFromResults.getType().equals(RecordType.CNAME)) {
+                    ResourceRecord resultRecord = getResultRecord(recordFromResults, node);
+                    if (!resultRecord.getType().equals(RecordType.CNAME)) {
+                        ResourceRecord record = new ResourceRecord(node.getHostName(), node.getType(), resultRecord.getTTL(), resultRecord.getTextResult());
+                        cache.addResult(record);
+                        results = cache.getCachedResults(node);
+                    }
+                }
             }
 
             return results;
@@ -292,6 +301,9 @@ public class DNSLookupService {
                     InetAddress nsAddress = getNSAddress(textResult);
                     retrieveResultsFromServer(node, nsAddress);
                 }
+            }
+            if (qt.getAnswers().size() > 0) {
+                System.out.println("answersL "+qt.getAnswers().size());
             }
         }
         catch (IOException e){
@@ -562,12 +574,10 @@ public class DNSLookupService {
         int RFC = response[3] & 15;
 
         if(queryId != responseId){
-            System.out.println("IDs don't match");
             return false;
         }
 
         if (RFC != 0){
-            System.out.println("Response error");
             return false;
         }
         return true;
