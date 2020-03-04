@@ -191,18 +191,38 @@ public class DNSLookupService {
 
             // Updates results with cache
             results = cache.getCachedResults(node);
-            return results;
-        }
-        else {
-            // CNAME is in Cache
-            for (ResourceRecord cnameRecord : results) {
-                DNSNode CNameRecord = new DNSNode(cnameRecord.getHostName(),cnameRecord.getType());
-                // TODO Add a return somewhere
-                getResults(CNameRecord, indirectionLevel + 1);
+
+            if (results.isEmpty()){
+                results = cache.getCachedResults(nodeCNAME);
+                if(!results.isEmpty()){
+                    String cname = results.iterator().next().getTextResult();
+                    DNSNode cnameNode = new DNSNode(cname,node.getType());
+                    getResults(cnameNode, indirectionLevel + 1 );
+                }
             }
+            // TODO
+/*            else {
+                ResourceRecord record = matchCName(results.iterator().next());
+                ResourceRecord newRecord = new ResourceRecord(node.getHostName(),node.getType(),record.getTTL(),record.getInetResult());
+                cache.addResult(newRecord);
+                results = cache.getCachedResults(node);
+            }
+*/
+            return results;
         }
 
         return cache.getCachedResults(node);
+    }
+
+    private static ResourceRecord matchCName(ResourceRecord record){
+        if(record.getInetResult() == null){
+            DNSNode cnameNode = new DNSNode(record.getTextResult(),RecordType.CNAME);
+            Set<ResourceRecord> result = cache.getCachedResults(cnameNode);
+            if(!result.isEmpty()){
+                return matchCName(result.iterator().next());
+            }
+        }
+        return record;
     }
 
     /**
@@ -228,7 +248,6 @@ public class DNSLookupService {
 
             int queryId = twoBytesToInt(requestQuery[0], requestQuery[1]);
 
-
             if(!checkErrors(requestQuery,responseQuery)){
                 return;
             }
@@ -241,36 +260,38 @@ public class DNSLookupService {
 
             tracePrint(qt);
 
-            // TODO: handle traversing for case 1 (see docs)
             if (qt.isAuthoritative() == 0){
                 if(qt.getAdditionals().size() > 0){
                     InetAddress hopAddress = qt.getAdditionals().get(0).getInetResult();
                     retrieveResultsFromServer(node,hopAddress);
                 }
+                else {
+                    // TODO: handle traversing for case 3
+                    String nameServer = qt.getNameServers().get(0).getTextResult();
+                    InetAddress nsAddress = getNSAddress(nameServer);
+                    retrieveResultsFromServer(node, nsAddress);
+                }
             }
-            // TODO: handle traversing for case 2
+            else {
+                if(qt.getAnswers().size() > 0){
 
-            // TODO: handle traversing for case 3
-
-            // TODO: handle traversing for case 4 - cname
-/*
-            // No answers and no additional information
-            if (qt.getAnswers().size() == 0 &&
-                qt.getAdditionals().size() == 0 &&
-                qt.getNameServers().size() > 0) {
-                retrieveResultsFromServer(node, rootServer);
+                }
             }
-*/
         }
         catch (IOException e){
             System.out.println(e.getMessage());
         }
     }
 
+    private static InetAddress getNSAddress(String nameServer){
+        DNSNode node = new DNSNode(nameServer,RecordType.A);
+
+        retrieveResultsFromServer(node, rootServer);
+        return cache.getCachedResults(node).iterator().next().getInetResult();
+    }
+
     private static byte[] encodeQuery(byte[] query, DNSNode node){
         String[] QNAME = node.getHostName().split("\\.");
-
-        System.out.println(node.getHostName());
 
         // Query ID
         Random rand = new Random();
@@ -447,7 +468,7 @@ public class DNSLookupService {
             // Checks if it uses pointer
             if (pointerVal == 3) {
                 int offset = twoBytesToInt(query[current], query[++current]);
-                offset = offset & 63;
+                offset = offset & 16383;
                 //
                 Pair pair = byteArrayToString(query, offset);
                 return new Pair(sb.append(pair.getFQDN()).toString(), current + 1);
@@ -525,8 +546,6 @@ public class DNSLookupService {
         int responseid = twoBytesToInt(response[0], response[1]);
 
         int RFC = response[3] & 15;
-
-        System.out.println("RFC: " + RFC);
 
         if(queryid != responseid){
             System.out.println("IDs don't match");
