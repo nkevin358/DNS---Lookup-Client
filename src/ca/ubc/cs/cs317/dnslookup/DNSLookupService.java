@@ -200,14 +200,12 @@ public class DNSLookupService {
                     ResourceRecord resultRecord = getResultRecord(recordFromResults, node);
 
                     if (resultRecord.getInetResult() != null) {
-                        System.out.println("here bish: ");
                         System.out.println(resultRecord.getTextResult());
                         ResourceRecord record = new ResourceRecord(node.getHostName(), node.getType(), resultRecord.getTTL(), resultRecord.getInetResult());
                         cache.addResult(record);
                         results = cache.getCachedResults(node);
 
                     } else {
-                        System.out.println("here bish no inet: ");
                         String cname = (!resultRecord.equals(recordFromResults)) ? resultRecord.getTextResult() : recordFromResults.getTextResult();
                         DNSNode cnameNode = new DNSNode(cname,node.getType());
                         getResults(cnameNode, indirectionLevel + 1 );
