@@ -245,8 +245,6 @@ public class DNSLookupService {
             if (qt.isAuthoritative() == 0){
                 if(qt.getAdditionals().size() > 0){
                     InetAddress hopAddress = qt.getAdditionals().get(0).getInetResult();
-                    System.out.println(server);
-                    System.out.println(hopAddress);
                     retrieveResultsFromServer(node,hopAddress);
                 }
             }
@@ -332,7 +330,9 @@ public class DNSLookupService {
         query[++current] = (byte) 0;
         query[++current] = (byte) 1;
 
-        return query;
+        byte[] truncQuery = Arrays.copyOf(query, current+1);
+
+        return truncQuery;
     }
 
     private static QueryTrace decodeQuery(byte[] query, DNSNode node) {
