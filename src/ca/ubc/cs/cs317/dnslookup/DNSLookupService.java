@@ -182,10 +182,10 @@ public class DNSLookupService {
         DNSNode nodeCNAME = new DNSNode(node.getHostName(), RecordType.CNAME);
         results = cache.getCachedResults(nodeCNAME);
 
-        if (!results.isEmpty()) {
-            DNSNode nodeCache = getCachedNode(nodeCNAME, node);
-            retrieveResultsFromServer(nodeCache, rootServer);
+        DNSNode nodeCache = getCachedNode(nodeCNAME, node);
 
+        if (!results.isEmpty()) {
+            retrieveResultsFromServer(nodeCache, rootServer);
             // TODO need to add stuff here to check results again similar to else statement below (see more details in google docs)
         } else {
             retrieveResultsFromServer(node, rootServer);
@@ -207,7 +207,7 @@ public class DNSLookupService {
                     } else {
                         String cname = (!resultRecord.equals(recordFromResults)) ? resultRecord.getTextResult() : recordFromResults.getTextResult();
                         DNSNode cnameNode = new DNSNode(cname,node.getType());
-                        getResults(cnameNode, indirectionLevel + 1 );
+                        getResults(cnameNode, indirectionLevel + 1);
                     }
                 }
             }
@@ -221,16 +221,16 @@ public class DNSLookupService {
                     for (ResourceRecord record : resultRecord) {
                         if (!record.getType().equals(RecordType.CNAME)) {
                             cache.addResult(new ResourceRecord(node.getHostName(), node.getType(), record.getTTL(), record.getTextResult()));
-                            results = cache.getCachedResults(node);
                         }
                     }
-                    return results;
                 }
             }
         }
+
         return cache.getCachedResults(node);
     }
 
+    // find the latest node stored in cache
     private static DNSNode getCachedNode(DNSNode cnameNode, DNSNode node) {
         Set<ResourceRecord> results = cache.getCachedResults(cnameNode);
 
@@ -243,6 +243,7 @@ public class DNSLookupService {
         return new DNSNode(cnameNode.getHostName(), node.getType());
     }
 
+    // find ResourceRecord that has an InetAddress
     private static ResourceRecord getResultRecord(ResourceRecord record, DNSNode node){
         if(record.getInetResult() == null) {
             DNSNode cnameNode = new DNSNode(record.getTextResult(), record.getType());
@@ -261,6 +262,7 @@ public class DNSLookupService {
         return record;
     }
 
+    // find Set<ResourceRecord> that has an InetAddress
     private static Set<ResourceRecord> getResultRecords(ResourceRecord record, DNSNode node) {
         if(record.getInetResult() == null) {
             DNSNode cnameNode = new DNSNode(record.getTextResult(), record.getType());
@@ -380,6 +382,7 @@ public class DNSLookupService {
         return cache.getCachedResults(node).iterator().next().getInetResult();
     }
 
+    // encoding query to send to a server
     private static byte[] encodeQuery(byte[] query, DNSNode node){
         String[] QNAME = node.getHostName().split("\\.");
 
@@ -445,6 +448,7 @@ public class DNSLookupService {
         return Arrays.copyOf(query, current+1);
     }
 
+    // decoding response query from a server
     private static QueryTrace decodeQuery(byte[] query, DNSNode node) {
         QueryTrace qt = new QueryTrace();
 
