@@ -182,13 +182,8 @@ public class DNSLookupService {
 
         DNSNode nodeCNAME = new DNSNode(node.getHostName(), RecordType.CNAME);
 
-        results = cache.getCachedResults(nodeCNAME);
-        System.out.println("getResults#: " + results.size());
-
-
         // when CNAME is not in cache
         if (results.isEmpty()) {
-            System.out.println("here?");
             // Retrieve from server
             retrieveResultsFromServer(node, rootServer);
 
@@ -199,7 +194,6 @@ public class DNSLookupService {
                 results = cache.getCachedResults(nodeCNAME);
 
                 if(!results.isEmpty()) {
-                    System.out.println("here bish");
                     ResourceRecord recordFromResults = results.iterator().next();
                     ResourceRecord resultRecord = getResultRecord(recordFromResults, node);
 
@@ -218,7 +212,6 @@ public class DNSLookupService {
             }
 
             if (!results.isEmpty()) {
-                System.out.println(results.size());
                 ResourceRecord recordFromResults = results.iterator().next();
                 if (recordFromResults.getType().equals(RecordType.CNAME)) {
                     ResourceRecord resultRecord = getResultRecord(recordFromResults, node);
@@ -301,9 +294,6 @@ public class DNSLookupService {
                     InetAddress nsAddress = getNSAddress(textResult);
                     retrieveResultsFromServer(node, nsAddress);
                 }
-            }
-            if (qt.getAnswers().size() > 0) {
-                System.out.println("answersL "+qt.getAnswers().size());
             }
         }
         catch (IOException e){
