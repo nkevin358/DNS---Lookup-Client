@@ -272,11 +272,11 @@ public class DNSLookupService {
             if (qt.isAuthoritative() == 0){
                 if(qt.getAdditionals().size() > 0){
                     InetAddress hopAddress = qt.getAdditionals().get(0).getInetResult();
-                    retrieveResultsFromServer(node,hopAddress);
+                    retrieveResultsFromServer(node, hopAddress);
                 }
                 else {
-                    String nameServer = qt.getNameServers().get(0).getTextResult();
-                    InetAddress nsAddress = getNSAddress(nameServer);
+                    String textResult = qt.getNameServers().get(0).getTextResult();
+                    InetAddress nsAddress = getNSAddress(textResult);
                     retrieveResultsFromServer(node, nsAddress);
                 }
             }
@@ -286,10 +286,10 @@ public class DNSLookupService {
         }
     }
 
-    private static InetAddress getNSAddress(String nameServer){
-        DNSNode node = new DNSNode(nameServer,RecordType.A);
-
+    private static InetAddress getNSAddress(String textResult) {
+        DNSNode node = new DNSNode(textResult, RecordType.A);
         retrieveResultsFromServer(node, rootServer);
+        // TODO : problem here because it assumes that there is something in the cache for this node
         return cache.getCachedResults(node).iterator().next().getInetResult();
     }
 
@@ -429,6 +429,7 @@ public class DNSLookupService {
             currentIndex = pairRecord.getEndIndex();
             arCount--;
         }
+        additionals.sort(Comparator.comparing(ResourceRecord::getType));
 
         qt.setAnswers(answers);
         qt.setNameServers(nameServers);
