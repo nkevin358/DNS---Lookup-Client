@@ -180,46 +180,55 @@ public class DNSLookupService {
             return results;
         }
 
-        DNSNode nodeCNAME = new DNSNode(node.getHostName(), RecordType.CNAME );
+        DNSNode nodeCNAME = new DNSNode(node.getHostName(), RecordType.CNAME);
 
         results = cache.getCachedResults(nodeCNAME);
 
         // Checks if CNAME is Cached
         if (results.isEmpty()){
             // Retrieve from Server
-            retrieveResultsFromServer(node,rootServer);
+            retrieveResultsFromServer(node, rootServer);
 
             // Updates results with cache
             results = cache.getCachedResults(node);
 
             if (results.isEmpty()){
                 results = cache.getCachedResults(nodeCNAME);
+
                 if(!results.isEmpty()){
-                    String cname = results.iterator().next().getTextResult();
-                    DNSNode cnameNode = new DNSNode(cname,node.getType());
-                    getResults(cnameNode, indirectionLevel + 1 );
+                    // TODO here
+                    ResourceRecord record = matchCName(results.iterator().next(), node);
+                    if (!record.equals(results.iterator().next())) {
+                        ResourceRecord newRecord = new ResourceRecord(node.getHostName(), node.getType(), record.getTTL(), record.getInetResult());
+                        cache.addResult(newRecord);
+                        results = cache.getCachedResults(node);
+                    } else {
+                        String cname = results.iterator().next().getTextResult();
+                        DNSNode cnameNode = new DNSNode(cname,node.getType());
+                        getResults(cnameNode, indirectionLevel + 1 );
+                    }
                 }
             }
-            // TODO
-/*            else {
-                ResourceRecord record = matchCName(results.iterator().next());
-                ResourceRecord newRecord = new ResourceRecord(node.getHostName(),node.getType(),record.getTTL(),record.getInetResult());
-                cache.addResult(newRecord);
-                results = cache.getCachedResults(node);
-            }
-*/
+
             return results;
         }
 
         return cache.getCachedResults(node);
     }
 
-    private static ResourceRecord matchCName(ResourceRecord record){
+    private static ResourceRecord matchCName(ResourceRecord record, DNSNode node){
         if(record.getInetResult() == null){
-            DNSNode cnameNode = new DNSNode(record.getTextResult(),RecordType.CNAME);
+            DNSNode cnameNode = new DNSNode(record.getTextResult(), record.getType());
             Set<ResourceRecord> result = cache.getCachedResults(cnameNode);
-            if(!result.isEmpty()){
-                return matchCName(result.iterator().next());
+            if (result.isEmpty()) {
+                DNSNode newNode = new DNSNode(record.getTextResult(), node.getType());
+                result = cache.getCachedResults(newNode);
+
+                if (result.isEmpty()) return record;
+                return result.iterator().next();
+            }
+            else {
+                return matchCName(result.iterator().next(), node);
             }
         }
         return record;
@@ -266,15 +275,9 @@ public class DNSLookupService {
                     retrieveResultsFromServer(node,hopAddress);
                 }
                 else {
-                    // TODO: handle traversing for case 3
                     String nameServer = qt.getNameServers().get(0).getTextResult();
                     InetAddress nsAddress = getNSAddress(nameServer);
                     retrieveResultsFromServer(node, nsAddress);
-                }
-            }
-            else {
-                if(qt.getAnswers().size() > 0){
-
                 }
             }
         }
@@ -560,34 +563,32 @@ public class DNSLookupService {
     }
 
     private static void tracePrint(QueryTrace qt) {
-        printQueryIdTitle(qt.getQueryId(), qt.getNode().getHostName(), qt.getNode().getType(), qt.getServer());
-        printResponseIdTitle(qt.getResponseId(), qt.isAuthoritative());
-
-        printResourceRecordTitle("Answers", qt.getAnswers().size());
-        verbosePrintResourceRecordList(qt.getAnswers());
-
-        printResourceRecordTitle("Nameservers", qt.getNameServers().size());
-        verbosePrintResourceRecordList(qt.getNameServers());
-
-        printResourceRecordTitle("Additional Information", qt.getAdditionals().size());
-        verbosePrintResourceRecordList(qt.getAdditionals());
-    }
-
-    private static void printQueryIdTitle(int queryId, String hostname, RecordType type, InetAddress server) {
-        if (verboseTracing)
-            System.out.println("Query ID     " + queryId + " " + hostname + "  " + type.toString() + " --> " + server.getHostAddress());
-    }
-
-    private static void printResponseIdTitle(int responseId, int authoritative) {
         if (verboseTracing) {
-            boolean isAuthoritative = authoritative == 1;
-            System.out.println("Response ID: " + responseId + " " + "Authoritative = " + isAuthoritative);
+            printQueryIdTitle(qt.getQueryId(), qt.getNode().getHostName(), qt.getNode().getType(), qt.getServer());
+            printResponseIdTitle(qt.getResponseId(), qt.isAuthoritative());
+
+            printResourceRecordTitle("Answers", qt.getAnswers().size());
+            verbosePrintResourceRecordList(qt.getAnswers());
+
+            printResourceRecordTitle("Nameservers", qt.getNameServers().size());
+            verbosePrintResourceRecordList(qt.getNameServers());
+
+            printResourceRecordTitle("Additional Information", qt.getAdditionals().size());
+            verbosePrintResourceRecordList(qt.getAdditionals());
         }
     }
 
+    private static void printQueryIdTitle(int queryId, String hostname, RecordType type, InetAddress server) {
+        System.out.println("Query ID     " + queryId + " " + hostname + "  " + type.toString() + " --> " + server.getHostAddress());
+    }
+
+    private static void printResponseIdTitle(int responseId, int authoritative) {
+        boolean isAuthoritative = authoritative == 1;
+        System.out.println("Response ID: " + responseId + " " + "Authoritative = " + isAuthoritative);
+    }
+
     private static void printResourceRecordTitle(String name, int num) {
-        if (verboseTracing)
-            System.out.println("  " + name + " (" + num + ")");
+        System.out.println("  " + name + " (" + num + ")");
     }
 
     private static void verbosePrintResourceRecord(ResourceRecord record, int rtype) {
