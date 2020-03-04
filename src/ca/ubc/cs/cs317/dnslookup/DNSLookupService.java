@@ -18,6 +18,9 @@ public class DNSLookupService {
 
     private static Random random = new Random();
 
+    private static int timeoutQueryId;
+    private static int timeoutCount = 0;
+
     /**
      * Main function, called when program is first invoked.
      *
@@ -299,77 +302,45 @@ public class DNSLookupService {
 
             socket.setSoTimeout(5000);
 
+            try {
+                // response query
+                byte[] responseQuery = new byte[1024];
+                DatagramPacket response = new DatagramPacket(responseQuery,responseQuery.length);
+                socket.receive(response);
 
-                try {
-                    // response query
-                    byte[] responseQuery = new byte[1024];
-                    DatagramPacket response = new DatagramPacket(responseQuery,responseQuery.length);
-                    socket.receive(response);
+                int queryId = twoBytesToInt(requestQuery[0], requestQuery[1]);
 
-                    int queryId = twoBytesToInt(requestQuery[0], requestQuery[1]);
+                if(!checkErrors(queryId,responseQuery)){
+                    return;
+                }
 
-                    if(!checkErrors(queryId,responseQuery)){
-                        return;
+                QueryTrace qt = decodeQuery(responseQuery, node);
+
+                qt.setQueryId(queryId);
+                qt.setServer(server);
+
+                tracePrint(qt);
+
+                if (qt.isAuthoritative() == 0){
+                    if(qt.getAdditionals().size() > 0){
+                        ResourceRecord record = qt.getAdditionals().stream()
+                                .filter(a -> a.getType().equals(RecordType.A))
+                                .findFirst()
+                                .orElse(qt.getAdditionals().get(0));
+                        retrieveResultsFromServer(node, record.getInetResult());
                     }
-
-                    QueryTrace qt = decodeQuery(responseQuery, node);
-
-                    qt.setQueryId(queryId);
-                    qt.setServer(server);
-
-                    tracePrint(qt);
-
-                    if (qt.isAuthoritative() == 0){
-                        if(qt.getAdditionals().size() > 0){
-                            ResourceRecord record = qt.getAdditionals().stream()
-                                    .filter(a -> a.getType().equals(RecordType.A))
-                                    .findFirst()
-                                    .orElse(qt.getAdditionals().get(0));
-                            retrieveResultsFromServer(node, record.getInetResult());
-                        }
-                        else {
-                            String textResult = qt.getNameServers().get(0).getTextResult();
-                            InetAddress nsAddress = getNSAddress(textResult);
-                            retrieveResultsFromServer(node, nsAddress);
-                        }
-                    }
-                } catch (SocketTimeoutException e) {
-                    try {
-                        byte[] responseQuery = new byte[1024];
-                        DatagramPacket response = new DatagramPacket(responseQuery,responseQuery.length);
-                        socket.receive(response);
-
-                        int queryId = twoBytesToInt(requestQuery[0], requestQuery[1]);
-
-                        if(!checkErrors(queryId,responseQuery)){
-                            return;
-                        }
-
-                        QueryTrace qt = decodeQuery(responseQuery, node);
-
-                        qt.setQueryId(queryId);
-                        qt.setServer(server);
-
-                        tracePrint(qt);
-
-                        if (qt.isAuthoritative() == 0){
-                            if(qt.getAdditionals().size() > 0){
-                                ResourceRecord record = qt.getAdditionals().stream()
-                                        .filter(a -> a.getType().equals(RecordType.A))
-                                        .findFirst()
-                                        .orElse(qt.getAdditionals().get(0));
-                                retrieveResultsFromServer(node, record.getInetResult());
-                            }
-                            else {
-                                String textResult = qt.getNameServers().get(0).getTextResult();
-                                InetAddress nsAddress = getNSAddress(textResult);
-                                retrieveResultsFromServer(node, nsAddress);
-                            }
-                        }
-                    } catch (SocketTimeoutException socket) {
-                        return;
+                    else {
+                        String textResult = qt.getNameServers().get(0).getTextResult();
+                        InetAddress nsAddress = getNSAddress(textResult);
+                        retrieveResultsFromServer(node, nsAddress);
                     }
                 }
+            } catch (SocketTimeoutException e) {
+                timeoutCount++;
+                if (timeoutCount == 1) {
+                    retrieveResultsFromServer(node, server);
+                }
+            }
         }
         catch (IOException e){
             System.out.println(e.getMessage());
@@ -387,8 +358,8 @@ public class DNSLookupService {
         String[] QNAME = node.getHostName().split("\\.");
 
         // Query ID
-        Random rand = new Random();
-        int queryId = rand.nextInt(65535);
+        int queryId = timeoutCount > 0 ? timeoutQueryId : random.nextInt(65535);
+        timeoutQueryId = queryId;
         int ID1 =  (queryId >>> 8);
         int ID2 =  queryId & 0xff;
         query[0] = (byte) ID1;
