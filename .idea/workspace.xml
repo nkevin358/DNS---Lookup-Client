@@ -38,12 +38,12 @@
         <counts>
           <entry key="Makefile" value="16" />
           <entry key="dummy" value="11" />
-          <entry key="java" value="14037" />
+          <entry key="java" value="14423" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="JAVA" value="14037" />
+          <entry key="JAVA" value="14423" />
           <entry key="PLAIN_TEXT" value="27" />
         </counts>
       </usages-collector>
@@ -54,8 +54,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/ca/ubc/cs/cs317/dnslookup/DNSLookupService.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="555">
-              <caret line="213" column="37" selection-start-line="213" selection-start-column="37" selection-end-line="213" selection-end-column="37" />
+            <state relative-caret-position="302">
+              <caret line="214" selection-start-line="214" selection-end-line="214" />
               <folding>
                 <element signature="imports" expanded="true" />
                 <element signature="e#17330#17331#0" expanded="true" />
@@ -483,8 +483,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/ca/ubc/cs/cs317/dnslookup/DNSLookupService.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="555">
-          <caret line="213" column="37" selection-start-line="213" selection-start-column="37" selection-end-line="213" selection-end-column="37" />
+        <state relative-caret-position="302">
+          <caret line="214" selection-start-line="214" selection-end-line="214" />
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#17330#17331#0" expanded="true" />

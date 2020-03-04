@@ -214,11 +214,14 @@ public class DNSLookupService {
             if (!results.isEmpty()) {
                 ResourceRecord recordFromResults = results.iterator().next();
                 if (recordFromResults.getType().equals(RecordType.CNAME)) {
-                    ResourceRecord resultRecord = getResultRecord(recordFromResults, node);
-                    if (!resultRecord.getType().equals(RecordType.CNAME)) {
-                        ResourceRecord record = new ResourceRecord(node.getHostName(), node.getType(), resultRecord.getTTL(), resultRecord.getTextResult());
-                        cache.addResult(record);
-                        results = cache.getCachedResults(node);
+                    Set<ResourceRecord> resultRecord = getResultRecords(recordFromResults, node);
+                    if (resultRecord != null && !resultRecord.isEmpty()) {
+                        for (ResourceRecord record : resultRecord) {
+                            if (!record.getType().equals(RecordType.CNAME)) {
+                                cache.addResult(new ResourceRecord(node.getHostName(), node.getType(), record.getTTL(), record.getTextResult()));
+                                results = cache.getCachedResults(node);
+                            }
+                        }
                     }
                 }
             }
@@ -230,7 +233,7 @@ public class DNSLookupService {
     }
 
     private static ResourceRecord getResultRecord(ResourceRecord record, DNSNode node){
-        if(record.getInetResult() == null){
+        if(record.getInetResult() == null) {
             DNSNode cnameNode = new DNSNode(record.getTextResult(), record.getType());
             Set<ResourceRecord> result = cache.getCachedResults(cnameNode);
             if (result.isEmpty()) {
@@ -245,6 +248,24 @@ public class DNSLookupService {
             }
         }
         return record;
+    }
+
+    private static Set<ResourceRecord> getResultRecords(ResourceRecord record, DNSNode node){
+        if(record.getInetResult() == null) {
+            DNSNode cnameNode = new DNSNode(record.getTextResult(), record.getType());
+            Set<ResourceRecord> result = cache.getCachedResults(cnameNode);
+            if (result.isEmpty()) {
+                DNSNode newNode = new DNSNode(record.getTextResult(), node.getType());
+                result = cache.getCachedResults(newNode);
+
+                if (result.isEmpty()) return null;
+                return result;
+            }
+            else {
+                return getResultRecords(result.iterator().next(), node);
+            }
+        }
+        return null;
     }
 
     /**
