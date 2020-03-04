@@ -38,12 +38,12 @@
         <counts>
           <entry key="Makefile" value="16" />
           <entry key="dummy" value="11" />
-          <entry key="java" value="14592" />
+          <entry key="java" value="14846" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="JAVA" value="14592" />
+          <entry key="JAVA" value="14846" />
           <entry key="PLAIN_TEXT" value="27" />
         </counts>
       </usages-collector>
@@ -54,31 +54,13 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/ca/ubc/cs/cs317/dnslookup/DNSLookupService.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="628">
-              <caret line="356" column="31" lean-forward="true" selection-start-line="356" selection-start-column="31" selection-end-line="356" selection-end-column="31" />
+            <state relative-caret-position="167">
+              <caret line="200" selection-start-line="200" selection-end-line="200" />
               <folding>
                 <element signature="imports" expanded="true" />
-                <element signature="e#18203#18204#0" expanded="true" />
-                <element signature="e#18256#18257#0" expanded="true" />
+                <element signature="e#20316#20317#0" expanded="true" />
+                <element signature="e#20369#20370#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="jar:///Library/Java/JavaVirtualMachines/jdk-11.0.6.jdk/Contents/Home/lib/src.zip!/java.base/java/net/DatagramSocket.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="229">
-              <caret line="896" column="30" selection-start-line="896" selection-start-column="15" selection-end-line="896" selection-end-column="30" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="jar:///Library/Java/JavaVirtualMachines/jdk-11.0.6.jdk/Contents/Home/lib/src.zip!/java.base/java/util/Collections.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="55">
-              <caret line="4209" selection-start-line="4209" selection-end-line="4209" />
             </state>
           </provider>
         </entry>
@@ -86,8 +68,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/ca/ubc/cs/cs317/dnslookup/DNSCache.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="356">
-              <caret line="34" column="69" selection-start-line="34" selection-start-column="69" selection-end-line="34" selection-end-column="69" />
+            <state relative-caret-position="772">
+              <caret line="70" column="68" selection-start-line="70" selection-start-column="68" selection-end-line="70" selection-end-column="68" />
             </state>
           </provider>
         </entry>
@@ -123,6 +105,8 @@
       <find>printresults</find>
       <find>printResults</find>
       <find>sockettimeout</find>
+      <find>network is unreachable</find>
+      <find>System.out.println(</find>
     </findStrings>
   </component>
   <component name="IdeDocumentHistory">
@@ -137,11 +121,11 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds">
-    <option name="x" value="501" />
-    <option name="y" value="-1057" />
-    <option name="width" value="1038" />
-    <option name="height" value="1008" />
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="224" />
+    <option name="y" value="23" />
+    <option name="width" value="1689" />
+    <option name="height" value="691" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -318,7 +302,7 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="501" y="-1057" width="1038" height="1008" extended-state="0" />
+    <frame x="0" y="23" width="1280" height="691" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" weight="0.29626688" />
@@ -334,7 +318,7 @@
       <window_info anchor="bottom" id="TODO" order="6" weight="0.3298611" />
       <window_info anchor="bottom" id="Problems" order="7" weight="0.3298611" />
       <window_info anchor="bottom" id="Version Control" order="8" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Terminal" order="9" sideWeight="0.49722" weight="0.6360582" />
+      <window_info anchor="bottom" id="Terminal" order="9" sideWeight="0.49722" weight="0.6684028" />
       <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.50277996" side_tool="true" weight="0.6666667" />
       <window_info anchor="bottom" id="Messages" order="11" weight="0.3298611" />
       <window_info anchor="right" id="Commander" order="0" weight="0.4" />
@@ -453,13 +437,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/ca/ubc/cs/cs317/dnslookup/DNSCache.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="356">
-          <caret line="34" column="69" selection-start-line="34" selection-start-column="69" selection-end-line="34" selection-end-column="69" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/ca/ubc/cs/cs317/dnslookup/QueryTrace.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="604">
@@ -491,6 +468,13 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/ca/ubc/cs/cs317/dnslookup/DNSCache.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="772">
+          <caret line="70" column="68" selection-start-line="70" selection-start-column="68" selection-end-line="70" selection-end-column="68" />
+        </state>
+      </provider>
+    </entry>
     <entry file="jar:///Library/Java/JavaVirtualMachines/jdk-11.0.6.jdk/Contents/Home/lib/src.zip!/java.base/java/net/DatagramSocket.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="229">
@@ -500,12 +484,12 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/ca/ubc/cs/cs317/dnslookup/DNSLookupService.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="628">
-          <caret line="356" column="31" lean-forward="true" selection-start-line="356" selection-start-column="31" selection-end-line="356" selection-end-column="31" />
+        <state relative-caret-position="167">
+          <caret line="200" selection-start-line="200" selection-end-line="200" />
           <folding>
             <element signature="imports" expanded="true" />
-            <element signature="e#18203#18204#0" expanded="true" />
-            <element signature="e#18256#18257#0" expanded="true" />
+            <element signature="e#20316#20317#0" expanded="true" />
+            <element signature="e#20369#20370#0" expanded="true" />
           </folding>
         </state>
       </provider>

@@ -176,18 +176,18 @@ public class DNSLookupService {
         Set<ResourceRecord> results = cache.getCachedResults(node);
 
         // If Node is Cached return it
-        if (!results.isEmpty()){
+        if (!results.isEmpty()) {
             return results;
         }
 
         DNSNode nodeCNAME = new DNSNode(node.getHostName(), RecordType.CNAME);
+        results = cache.getCachedResults(nodeCNAME);
 
-        // when CNAME is not in cache
-        if (results.isEmpty()) {
-            // Retrieve from server
+        if (!results.isEmpty()) {
+            retrieveResultsFromServer(new DNSNode(results.iterator().next().getTextResult(), node.getType()), rootServer);
+        } else {
             retrieveResultsFromServer(node, rootServer);
 
-            // Update results with cache
             results = cache.getCachedResults(node);
 
             if (results.isEmpty()) {
@@ -198,7 +198,6 @@ public class DNSLookupService {
                     ResourceRecord resultRecord = getResultRecord(recordFromResults, node);
 
                     if (resultRecord.getInetResult() != null) {
-                        System.out.println(resultRecord.getTextResult());
                         ResourceRecord record = new ResourceRecord(node.getHostName(), node.getType(), resultRecord.getTTL(), resultRecord.getInetResult());
                         cache.addResult(record);
                         results = cache.getCachedResults(node);
@@ -210,25 +209,23 @@ public class DNSLookupService {
                     }
                 }
             }
-
-            if (!results.isEmpty()) {
-                ResourceRecord recordFromResults = results.iterator().next();
-                if (recordFromResults.getType().equals(RecordType.CNAME)) {
-                    Set<ResourceRecord> resultRecord = getResultRecords(recordFromResults, node);
-                    if (resultRecord != null && !resultRecord.isEmpty()) {
-                        for (ResourceRecord record : resultRecord) {
-                            if (!record.getType().equals(RecordType.CNAME)) {
-                                cache.addResult(new ResourceRecord(node.getHostName(), node.getType(), record.getTTL(), record.getTextResult()));
-                                results = cache.getCachedResults(node);
-                            }
-                        }
-                    }
-                }
-            }
-
-            return results;
         }
 
+        if (!results.isEmpty()) {
+            ResourceRecord recordFromResults = results.iterator().next();
+            if (recordFromResults.getType().equals(RecordType.CNAME)) {
+                Set<ResourceRecord> resultRecord = getResultRecords(recordFromResults, node);
+                if (resultRecord != null && !resultRecord.isEmpty()) {
+                    for (ResourceRecord record : resultRecord) {
+                        if (!record.getType().equals(RecordType.CNAME)) {
+                            cache.addResult(new ResourceRecord(node.getHostName(), node.getType(), record.getTTL(), record.getTextResult()));
+                            results = cache.getCachedResults(node);
+                        }
+                    }
+                    return results;
+                }
+            }
+        }
         return cache.getCachedResults(node);
     }
 
