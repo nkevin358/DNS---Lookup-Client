@@ -271,8 +271,11 @@ public class DNSLookupService {
 
             if (qt.isAuthoritative() == 0){
                 if(qt.getAdditionals().size() > 0){
-                    InetAddress hopAddress = qt.getAdditionals().get(0).getInetResult();
-                    retrieveResultsFromServer(node, hopAddress);
+                    ResourceRecord record = qt.getAdditionals().stream()
+                            .filter(a -> a.getType().equals(RecordType.A))
+                            .findFirst()
+                            .orElse(qt.getAdditionals().get(0));
+                    retrieveResultsFromServer(node, record.getInetResult());
                 }
                 else {
                     String textResult = qt.getNameServers().get(0).getTextResult();
@@ -429,8 +432,6 @@ public class DNSLookupService {
             currentIndex = pairRecord.getEndIndex();
             arCount--;
         }
-        additionals.sort(Comparator.comparing(ResourceRecord::getType));
-
         qt.setAnswers(answers);
         qt.setNameServers(nameServers);
         qt.setAdditionals(additionals);

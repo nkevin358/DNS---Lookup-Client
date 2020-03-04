@@ -38,12 +38,12 @@
         <counts>
           <entry key="Makefile" value="16" />
           <entry key="dummy" value="11" />
-          <entry key="java" value="10964" />
+          <entry key="java" value="11277" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="JAVA" value="10964" />
+          <entry key="JAVA" value="11277" />
           <entry key="PLAIN_TEXT" value="27" />
         </counts>
       </usages-collector>
@@ -54,8 +54,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/ca/ubc/cs/cs317/dnslookup/DNSLookupService.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="323">
-              <caret line="291" column="100" selection-start-line="291" selection-start-column="100" selection-end-line="291" selection-end-column="100" />
+            <state relative-caret-position="178">
+              <caret line="279" column="22" lean-forward="true" selection-start-line="279" selection-start-column="22" selection-end-line="279" selection-end-column="22" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -169,12 +169,7 @@
     <entry key="Project Default">
       <profile-state>
         <expanded-state>
-          <State>
-            <id />
-          </State>
-          <State>
-            <id>Android &gt; Lint &gt; Correctness</id>
-          </State>
+          <State />
           <State>
             <id>Java</id>
           </State>
@@ -193,7 +188,7 @@
         </expanded-state>
         <selected-state>
           <State>
-            <id>AndroidLintInOrMmUsage</id>
+            <id>OptionalGetWithoutIsPresent</id>
           </State>
         </selected-state>
       </profile-state>
@@ -513,8 +508,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/ca/ubc/cs/cs317/dnslookup/DNSLookupService.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="323">
-          <caret line="291" column="100" selection-start-line="291" selection-start-column="100" selection-end-line="291" selection-end-column="100" />
+        <state relative-caret-position="178">
+          <caret line="279" column="22" lean-forward="true" selection-start-line="279" selection-start-column="22" selection-end-line="279" selection-end-column="22" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
