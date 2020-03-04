@@ -184,30 +184,40 @@ public class DNSLookupService {
 
         results = cache.getCachedResults(nodeCNAME);
 
-        // Checks if CNAME is Cached
-        if (results.isEmpty()){
-            // Retrieve from Server
+        // when CNAME is not in cache
+        if (results.isEmpty()) {
+            // Retrieve from server
             retrieveResultsFromServer(node, rootServer);
 
-            // Updates results with cache
+            // Update results with cache
             results = cache.getCachedResults(node);
 
-            if (results.isEmpty()){
+            if (results.isEmpty()) {
                 results = cache.getCachedResults(nodeCNAME);
 
-                if(!results.isEmpty()){
-                    // TODO here
-                    ResourceRecord record = matchCName(results.iterator().next(), node);
-                    if (!record.equals(results.iterator().next())) {
-                        ResourceRecord newRecord = new ResourceRecord(node.getHostName(), node.getType(), record.getTTL(), record.getInetResult());
-                        cache.addResult(newRecord);
+                if(!results.isEmpty()) {
+                    ResourceRecord recordFromResults = results.iterator().next();
+                    ResourceRecord resultRecord = getResultRecord(recordFromResults, node);
+
+                    if (!resultRecord.equals(recordFromResults)) {
+                        ResourceRecord record = new ResourceRecord(node.getHostName(), node.getType(), resultRecord.getTTL(), resultRecord.getInetResult());
+                        cache.addResult(record);
                         results = cache.getCachedResults(node);
+
                     } else {
-                        String cname = results.iterator().next().getTextResult();
+                        String cname = recordFromResults.getTextResult();
                         DNSNode cnameNode = new DNSNode(cname,node.getType());
                         getResults(cnameNode, indirectionLevel + 1 );
                     }
                 }
+            }
+
+            ResourceRecord recordFromResults = results.iterator().next();
+            if (recordFromResults.getType().equals(RecordType.CNAME)) {
+                ResourceRecord resultRecord = getResultRecord(recordFromResults, node);
+                ResourceRecord record = new ResourceRecord(node.getHostName(), node.getType(), resultRecord.getTTL(), resultRecord.getTextResult());
+                cache.addResult(record);
+                results = cache.getCachedResults(node);
             }
 
             return results;
@@ -216,7 +226,7 @@ public class DNSLookupService {
         return cache.getCachedResults(node);
     }
 
-    private static ResourceRecord matchCName(ResourceRecord record, DNSNode node){
+    private static ResourceRecord getResultRecord(ResourceRecord record, DNSNode node){
         if(record.getInetResult() == null){
             DNSNode cnameNode = new DNSNode(record.getTextResult(), record.getType());
             Set<ResourceRecord> result = cache.getCachedResults(cnameNode);
@@ -228,7 +238,7 @@ public class DNSLookupService {
                 return result.iterator().next();
             }
             else {
-                return matchCName(result.iterator().next(), node);
+                return getResultRecord(result.iterator().next(), node);
             }
         }
         return record;
@@ -257,14 +267,13 @@ public class DNSLookupService {
 
             int queryId = twoBytesToInt(requestQuery[0], requestQuery[1]);
 
-            if(!checkErrors(requestQuery,responseQuery)){
+            if(!checkErrors(queryId,responseQuery)){
                 return;
             }
 
             QueryTrace qt = decodeQuery(responseQuery, node);
 
             qt.setQueryId(queryId);
-            qt.setNode(node);
             qt.setServer(server);
 
             tracePrint(qt);
@@ -357,9 +366,8 @@ public class DNSLookupService {
         query[++current] = (byte) 0;
         query[++current] = (byte) 1;
 
-        byte[] truncQuery = Arrays.copyOf(query, current+1);
-
-        return truncQuery;
+        // send query with exact number of bytes
+        return Arrays.copyOf(query, current+1);
     }
 
     private static QueryTrace decodeQuery(byte[] query, DNSNode node) {
@@ -435,6 +443,7 @@ public class DNSLookupService {
         qt.setAnswers(answers);
         qt.setNameServers(nameServers);
         qt.setAdditionals(additionals);
+        qt.setNode(node);
 
         return qt;
     }
@@ -546,13 +555,12 @@ public class DNSLookupService {
         return query[startIndex] << 24 | (query[++startIndex] & 0xff) << 16 | (query[++startIndex] & 0xff) << 8 | (query[++startIndex] & 0xff);
     }
 
-    private static boolean checkErrors(byte[] query, byte[] response){
-        int queryid = twoBytesToInt(query[0], query[1]);
-        int responseid = twoBytesToInt(response[0], response[1]);
+    private static boolean checkErrors(int queryId, byte[] response){
+        int responseId = twoBytesToInt(response[0], response[1]);
 
         int RFC = response[3] & 15;
 
-        if(queryid != responseid){
+        if(queryId != responseId){
             System.out.println("IDs don't match");
             return false;
         }
@@ -566,6 +574,9 @@ public class DNSLookupService {
 
     private static void tracePrint(QueryTrace qt) {
         if (verboseTracing) {
+            System.out.println();
+            System.out.println();
+
             printQueryIdTitle(qt.getQueryId(), qt.getNode().getHostName(), qt.getNode().getType(), qt.getServer());
             printResponseIdTitle(qt.getResponseId(), qt.isAuthoritative());
 
