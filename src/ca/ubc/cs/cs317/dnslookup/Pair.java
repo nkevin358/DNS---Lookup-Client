@@ -5,18 +5,18 @@ import java.util.Objects;
 public class Pair {
     private String FQDN;
     private ResourceRecord record;
-    private int endIndex;
+    private int currentIndex;
 
     public Pair() {}
 
-    public Pair(String FQDN, int endIndex) {
+    public Pair(String FQDN, int currentIndex) {
         this.FQDN = FQDN;
-        this.endIndex = endIndex;
+        this.currentIndex = currentIndex;
     }
 
-    public Pair(ResourceRecord record, int endIndex) {
+    public Pair(ResourceRecord record, int currentIndex) {
         this.record = record;
-        this.endIndex = endIndex;
+        this.currentIndex = currentIndex;
     }
 
     public String getFQDN() {
@@ -35,12 +35,12 @@ public class Pair {
         this.record = record;
     }
 
-    public int getEndIndex() {
-        return endIndex;
+    public int getCurrentIndex() {
+        return currentIndex;
     }
 
-    public void setEndIndex(int endIndex) {
-        this.endIndex = endIndex;
+    public void setCurrentIndex(int currentIndex) {
+        this.currentIndex = currentIndex;
     }
 
     @Override
@@ -48,12 +48,12 @@ public class Pair {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Pair pair = (Pair) o;
-        return endIndex == pair.endIndex &&
+        return currentIndex == pair.currentIndex &&
                 Objects.equals(FQDN, pair.FQDN);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(FQDN, endIndex);
+        return Objects.hash(FQDN, currentIndex);
     }
 }

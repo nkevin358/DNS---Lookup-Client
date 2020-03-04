@@ -175,7 +175,6 @@ public class DNSLookupService {
 
         Set<ResourceRecord> results = cache.getCachedResults(node);
 
-        // If Node is Cached return it
         if (!results.isEmpty()) {
             return results;
         }
@@ -184,7 +183,10 @@ public class DNSLookupService {
         results = cache.getCachedResults(nodeCNAME);
 
         if (!results.isEmpty()) {
-            retrieveResultsFromServer(new DNSNode(results.iterator().next().getTextResult(), node.getType()), rootServer);
+            DNSNode nodeCache = getCachedNode(nodeCNAME, node);
+            retrieveResultsFromServer(nodeCache, rootServer);
+
+            // TODO need to add stuff here to check results again similar to else statement below (see more details in google docs)
         } else {
             retrieveResultsFromServer(node, rootServer);
 
@@ -229,6 +231,18 @@ public class DNSLookupService {
         return cache.getCachedResults(node);
     }
 
+    private static DNSNode getCachedNode(DNSNode cnameNode, DNSNode node) {
+        Set<ResourceRecord> results = cache.getCachedResults(cnameNode);
+
+        if (!results.isEmpty()) {
+            ResourceRecord record = results.iterator().next();
+            DNSNode nodeCache = new DNSNode(record.getTextResult(), RecordType.CNAME);
+            return getCachedNode(nodeCache, node);
+        }
+
+        return new DNSNode(cnameNode.getHostName(), node.getType());
+    }
+
     private static ResourceRecord getResultRecord(ResourceRecord record, DNSNode node){
         if(record.getInetResult() == null) {
             DNSNode cnameNode = new DNSNode(record.getTextResult(), record.getType());
@@ -247,7 +261,7 @@ public class DNSLookupService {
         return record;
     }
 
-    private static Set<ResourceRecord> getResultRecords(ResourceRecord record, DNSNode node){
+    private static Set<ResourceRecord> getResultRecords(ResourceRecord record, DNSNode node) {
         if(record.getInetResult() == null) {
             DNSNode cnameNode = new DNSNode(record.getTextResult(), record.getType());
             Set<ResourceRecord> result = cache.getCachedResults(cnameNode);
@@ -363,7 +377,6 @@ public class DNSLookupService {
     private static InetAddress getNSAddress(String textResult) {
         DNSNode node = new DNSNode(textResult, RecordType.A);
         retrieveResultsFromServer(node, rootServer);
-        // TODO : problem here because it assumes that there is something in the cache for this node
         return cache.getCachedResults(node).iterator().next().getInetResult();
     }
 
@@ -461,7 +474,7 @@ public class DNSLookupService {
         // QNAME
         Pair pair = byteArrayToString(query, 12);
         String FQDN = pair.getFQDN();
-        int currentIndex = pair.getEndIndex();
+        int currentIndex = pair.getCurrentIndex();
 
         // QTYPE
         int type = twoBytesToInt(query[currentIndex], query[++currentIndex]);
@@ -482,7 +495,7 @@ public class DNSLookupService {
             pairRecord = decodeResourceRecord(query, currentIndex);
             answers.add(pairRecord.getRecord());
             cache.addResult(pairRecord.getRecord());
-            currentIndex = pairRecord.getEndIndex();
+            currentIndex = pairRecord.getCurrentIndex();
             answerCount--;
         }
 
@@ -490,7 +503,7 @@ public class DNSLookupService {
         while (nsCount > 0) {
             pairRecord = decodeResourceRecord(query, currentIndex);
             nameServers.add(pairRecord.getRecord());
-            currentIndex = pairRecord.getEndIndex();
+            currentIndex = pairRecord.getCurrentIndex();
             nsCount--;
         }
 
@@ -499,7 +512,7 @@ public class DNSLookupService {
             pairRecord = decodeResourceRecord(query, currentIndex);
             additionals.add(pairRecord.getRecord());
             cache.addResult(pairRecord.getRecord());
-            currentIndex = pairRecord.getEndIndex();
+            currentIndex = pairRecord.getCurrentIndex();
             arCount--;
         }
         qt.setAnswers(answers);
@@ -545,7 +558,7 @@ public class DNSLookupService {
             if (pointerVal == 3) {
                 int offset = twoBytesToInt(query[current], query[++current]);
                 offset = offset & 16383;
-                //
+
                 Pair pair = byteArrayToString(query, offset);
                 return new Pair(sb.append(pair.getFQDN()).toString(), current + 1);
             }
@@ -557,7 +570,7 @@ public class DNSLookupService {
     private static Pair decodeResourceRecord(byte[] query, int currentIndex){
         Pair recordPair = byteArrayToString(query, currentIndex);
 
-        int current = recordPair.getEndIndex();
+        int current = recordPair.getCurrentIndex();
         // Domain Name
         String hostName = recordPair.getFQDN();
         // Type
@@ -586,7 +599,7 @@ public class DNSLookupService {
         Pair pair = byteArrayToString(query, ++current);
         record = new ResourceRecord(hostName, recordType, TTL, pair.getFQDN());
 
-        return new Pair(record, pair.getEndIndex());
+        return new Pair(record, pair.getCurrentIndex());
     }
 
     private static InetAddress getIPv4Address(byte[] query, int currentIndex) {
