@@ -227,9 +227,12 @@ public class DNSLookupService {
             socket.receive(response);
 
             int queryId = twoBytesToInt(requestQuery[0], requestQuery[1]);
+
+
             if(!checkErrors(requestQuery,responseQuery)){
                 return;
             }
+
             QueryTrace qt = decodeQuery(responseQuery, node);
 
             qt.setQueryId(queryId);
@@ -238,10 +241,15 @@ public class DNSLookupService {
 
             tracePrint(qt);
 
-            // TODO: cache answers and additional info
-
             // TODO: handle traversing for case 1 (see docs)
-            //
+            if (qt.isAuthoritative() == 0){
+                if(qt.getAdditionals().size() > 0){
+                    InetAddress hopAddress = qt.getAdditionals().get(0).getInetResult();
+                    System.out.println(server);
+                    System.out.println(hopAddress);
+                    retrieveResultsFromServer(node,hopAddress);
+                }
+            }
             // TODO: handle traversing for case 2
 
             // TODO: handle traversing for case 3
@@ -255,11 +263,6 @@ public class DNSLookupService {
                 retrieveResultsFromServer(node, rootServer);
             }
 */
-
-            // continue iterating DNS hierarchy to find answer
-            if (qt.isAuthoritative() == 0) {
-                //retrieveResultsFromServer(qt.getNode(), qt.getNameServers().get(0).getInetResult());
-            }
         }
         catch (IOException e){
             System.out.println(e.getMessage());
@@ -268,6 +271,8 @@ public class DNSLookupService {
 
     private static byte[] encodeQuery(byte[] query, DNSNode node){
         String[] QNAME = node.getHostName().split("\\.");
+
+        System.out.println(node.getHostName());
 
         // Query ID
         Random rand = new Random();
@@ -521,11 +526,15 @@ public class DNSLookupService {
 
         int RFC = response[3] & 15;
 
+        System.out.println("RFC: " + RFC);
+
         if(queryid != responseid){
+            System.out.println("IDs don't match");
             return false;
         }
 
         if (RFC != 0){
+            System.out.println("Response error");
             return false;
         }
         return true;
