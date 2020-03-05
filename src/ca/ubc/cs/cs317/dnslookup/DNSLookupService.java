@@ -300,46 +300,45 @@ public class DNSLookupService {
             DatagramPacket request = new DatagramPacket(requestQuery, requestQuery.length, server, DEFAULT_DNS_PORT);
             socket.send(request);
 
+            // response query
+            byte[] responseQuery = new byte[1024];
+            DatagramPacket response = new DatagramPacket(responseQuery,responseQuery.length);
+            socket.receive(response);
+
             socket.setSoTimeout(5000);
 
-            try {
-                // response query
-                byte[] responseQuery = new byte[1024];
-                DatagramPacket response = new DatagramPacket(responseQuery,responseQuery.length);
-                socket.receive(response);
+            int queryId = twoBytesToInt(requestQuery[0], requestQuery[1]);
 
-                int queryId = twoBytesToInt(requestQuery[0], requestQuery[1]);
+            if(!checkErrors(queryId,responseQuery)){
+                return;
+            }
 
-                if(!checkErrors(queryId,responseQuery)){
-                    return;
+            QueryTrace qt = decodeQuery(responseQuery, node);
+
+            qt.setQueryId(queryId);
+            qt.setServer(server);
+
+            tracePrint(qt);
+
+            if (qt.isAuthoritative() == 0){
+                if(qt.getAdditionals().size() > 0){
+                    ResourceRecord record = qt.getAdditionals().stream()
+                            .filter(a -> a.getType().equals(RecordType.A))
+                            .findFirst()
+                            .orElse(qt.getAdditionals().get(0));
+                    retrieveResultsFromServer(node, record.getInetResult());
                 }
-
-                QueryTrace qt = decodeQuery(responseQuery, node);
-
-                qt.setQueryId(queryId);
-                qt.setServer(server);
-
-                tracePrint(qt);
-
-                if (qt.isAuthoritative() == 0){
-                    if(qt.getAdditionals().size() > 0){
-                        ResourceRecord record = qt.getAdditionals().stream()
-                                .filter(a -> a.getType().equals(RecordType.A))
-                                .findFirst()
-                                .orElse(qt.getAdditionals().get(0));
-                        retrieveResultsFromServer(node, record.getInetResult());
-                    }
-                    else {
-                        String textResult = qt.getNameServers().get(0).getTextResult();
-                        InetAddress nsAddress = getNSAddress(textResult);
-                        retrieveResultsFromServer(node, nsAddress);
-                    }
+                else {
+                    String textResult = qt.getNameServers().get(0).getTextResult();
+                    InetAddress nsAddress = getNSAddress(textResult);
+                    retrieveResultsFromServer(node, nsAddress);
                 }
-            } catch (SocketTimeoutException e) {
-                timeoutCount++;
-                if (timeoutCount == 1) {
-                    retrieveResultsFromServer(node, server);
-                }
+            }
+        }
+        catch (SocketTimeoutException e) {
+            timeoutCount++;
+            if (timeoutCount == 1) {
+                retrieveResultsFromServer(node, server);
             }
         }
         catch (IOException e){
