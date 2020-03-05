@@ -188,7 +188,7 @@ public class DNSLookupService {
         DNSNode nodeCache = getCachedNode(nodeCNAME, node);
 
         if (!results.isEmpty()) {
-            retrieveResultsFromServer(nodeCache, rootServer);
+            return getResults(nodeCache, indirectionLevel + 1);
             // TODO need to add stuff here to check results again similar to else statement below (see more details in google docs)
         } else {
             retrieveResultsFromServer(node, rootServer);
