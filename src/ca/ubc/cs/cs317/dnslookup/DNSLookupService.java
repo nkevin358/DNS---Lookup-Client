@@ -179,29 +179,34 @@ public class DNSLookupService {
         Set<ResourceRecord> results = cache.getCachedResults(node);
 
         if (!results.isEmpty()) {
+            // return cached results for given node
             return results;
         }
 
+        // Check if cached results for cname type of given node exist
         DNSNode nodeCNAME = new DNSNode(node.getHostName(), RecordType.CNAME);
         results = cache.getCachedResults(nodeCNAME);
 
         DNSNode nodeCache = getCachedNode(nodeCNAME, node);
 
         if (!results.isEmpty()) {
+            // use cached cname type node to query
             return getResults(nodeCache, indirectionLevel + 1);
-            // TODO need to add stuff here to check results again similar to else statement below (see more details in google docs)
         } else {
+            // use given node to query
             retrieveResultsFromServer(node, rootServer);
-
             results = cache.getCachedResults(node);
 
             if (results.isEmpty()) {
+                // Check if updated cached results for cname type of given node exist
                 results = cache.getCachedResults(nodeCNAME);
 
+                // cached results exist
                 if(!results.isEmpty()) {
                     ResourceRecord recordFromResults = results.iterator().next();
                     ResourceRecord resultRecord = getResultRecord(recordFromResults, node);
 
+                    // Check if the ResourceRecord has an InetAddress
                     if (resultRecord.getInetResult() != null) {
                         ResourceRecord record = new ResourceRecord(node.getHostName(), node.getType(), resultRecord.getTTL(), resultRecord.getInetResult());
                         cache.addResult(record);
