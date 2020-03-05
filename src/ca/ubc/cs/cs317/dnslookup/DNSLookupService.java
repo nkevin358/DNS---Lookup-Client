@@ -300,12 +300,13 @@ public class DNSLookupService {
             DatagramPacket request = new DatagramPacket(requestQuery, requestQuery.length, server, DEFAULT_DNS_PORT);
             socket.send(request);
 
+            socket.setSoTimeout(5000);
+
             // response query
             byte[] responseQuery = new byte[1024];
             DatagramPacket response = new DatagramPacket(responseQuery,responseQuery.length);
             socket.receive(response);
-
-            socket.setSoTimeout(5000);
+            timeoutCount = 0;
 
             int queryId = twoBytesToInt(requestQuery[0], requestQuery[1]);
 
