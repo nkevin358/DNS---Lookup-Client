@@ -1,4 +1,4 @@
-Total before late penalty: [/63]
+Total before late penalty: [63/63]
 
 NOTE: in the marking report something left blank (e.g.  [ /6]) typically means
 that you received full marks for that item.  There will be a mark deduction of 10 points if, 
@@ -64,7 +64,7 @@ Error Handling: [/8]
 
    [/2] Timeout - nameserver doesn't respond
 
-   [/2] Too many queries (e.g. loop1.csproject.org)
+   [0/2] Too many queries (e.g. loop1.csproject.org)
 
    [/2] Name does not resolve (e.g. wee.cs.ubc.ca)
 
